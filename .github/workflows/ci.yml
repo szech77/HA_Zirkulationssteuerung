@@ -68,6 +68,10 @@ jobs:
     name: Source security
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     steps:
       - uses: actions/checkout@v5
         with:
