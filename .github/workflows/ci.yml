@@ -76,12 +76,66 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install security tools
         run: python -m pip install --upgrade pip && python -m pip install -e ".[security]"
-      - name: Python static security analysis
-        run: python -m bandit -r custom_components tools -ll
-      - name: Audit Python dependencies
-        run: python -m pip_audit --skip-editable
+      - name: Install frontend dependencies for npm audit
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run Bandit and create JSON report
+        id: bandit
+        continue-on-error: true
+        run: python -m bandit -r custom_components tools -ll -f json -o bandit.json
+      - name: Convert Bandit report to SARIF
+        if: always() && hashFiles('bandit.json') != ''
+        run: python tools/security_reports.py bandit bandit.json bandit.sarif
+      - name: Upload Bandit results to code scanning
+        if: always() && hashFiles('bandit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+      - name: Run pip-audit and create JSON report
+        id: pip_audit
+        continue-on-error: true
+        run: python -m pip_audit --skip-editable --format json --output pip-audit.json
+      - name: Convert pip-audit report to SARIF
+        if: always() && hashFiles('pip-audit.json') != ''
+        run: python tools/security_reports.py pip-audit pip-audit.json pip-audit.sarif
+      - name: Upload pip-audit results to code scanning
+        if: always() && hashFiles('pip-audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: pip-audit.sarif
+          category: pip-audit
+      - name: Run npm audit and create JSON report
+        id: npm_audit
+        continue-on-error: true
+        working-directory: frontend
+        run: npm audit --audit-level=high --json > ../npm-audit.json
+      - name: Convert npm audit report to SARIF
+        if: always() && hashFiles('npm-audit.json') != ''
+        run: python tools/security_reports.py npm-audit npm-audit.json npm-audit.sarif
+      - name: Upload npm audit results to code scanning
+        if: always() && hashFiles('npm-audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: npm-audit.sarif
+          category: npm-audit
+      - name: Enforce security scan results
+        if: always()
+        env:
+          BANDIT_RESULT: ${{ steps.bandit.outcome }}
+          PIP_AUDIT_RESULT: ${{ steps.pip_audit.outcome }}
+          NPM_AUDIT_RESULT: ${{ steps.npm_audit.outcome }}
+        run: |
+          test "$BANDIT_RESULT" = success
+          test "$PIP_AUDIT_RESULT" = success
+          test "$NPM_AUDIT_RESULT" = success
 
   integration:
     name: Home Assistant and HACS metadata

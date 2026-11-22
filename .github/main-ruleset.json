@@ -27,7 +27,12 @@
       "type": "required_status_checks",
       "parameters": {
         "strict_required_status_checks_policy": true,
-        "required_status_checks": [{"context": "Required checks"}]
+        "required_status_checks": [
+          {"context": "Required checks"},
+          {"context": "Analyze (python)"},
+          {"context": "Analyze (javascript-typescript)"},
+          {"context": "Review dependency changes"}
+        ]
       }
     }
   ]
