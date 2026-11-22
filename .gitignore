@@ -12,6 +12,7 @@ htmlcov/
 .hypothesis/
 node_modules/
 dist/
+frontend/coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
