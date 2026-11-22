@@ -1,0 +1,12 @@
+{
+  "description": "Home Assistant custom integration for learning and safely planning domestic hot-water circulation.",
+  "topics": [
+    "home-assistant",
+    "hacs",
+    "home-assistant-integration",
+    "hot-water",
+    "circulation-pump",
+    "lovelace",
+    "vue"
+  ]
+}
