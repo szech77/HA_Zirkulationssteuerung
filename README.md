@@ -18,6 +18,15 @@ und expliziter Aktivierung Schaltbefehle.
 
 Die vollständige Anleitung steht in [INSTALLATION.md](./INSTALLATION.md).
 
+Weitere Projektregeln und Informationen:
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) – Entwicklungsablauf und Pull Requests
+- [CI.md](./CI.md) – Pipeline und lokale Nachstellung
+- [CHANGELOG.md](./CHANGELOG.md) – nachvollziehbare Änderungen je Version
+- [LOGGING.md](./LOGGING.md) – Logging- und Diagnosekonventionen
+- [SECURITY.md](./SECURITY.md) – Meldung und Behandlung von Sicherheitsproblemen
+- [LICENSE](./LICENSE) – Apache-2.0-Lizenz
+
 Kurzablauf:
 
 1. Integration über UI konfigurieren: Vorlaufsensor, Puffersensor optional,

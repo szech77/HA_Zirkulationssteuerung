@@ -66,6 +66,9 @@ jobs:
       - name: Run frontend tests
         working-directory: frontend
         run: npm test
+      - name: Collect frontend coverage
+        working-directory: frontend
+        run: npm run test:coverage
       - name: Audit frontend dependencies
         working-directory: frontend
         run: npm run audit
