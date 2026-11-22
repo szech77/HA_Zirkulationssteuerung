@@ -57,6 +57,10 @@ Vor jeder Übergabe:
 .venv\Scripts\python.exe -m pytest -q
 .venv\Scripts\python.exe -m pytest -q --cov=custom_components.warmwasser_zirkulation --cov-branch --cov-report=term-missing
 .venv\Scripts\python.exe -m compileall -q custom_components tests
+.venv\Scripts\python.exe -m pip install -e ".[security]"
+.venv\Scripts\python.exe -m bandit -r custom_components -ll
+# Das lokale Editable-Paket ist nicht auf PyPI veröffentlicht und wird übersprungen.
+.venv\Scripts\python.exe -m pip_audit --skip-editable
 ```
 
 Für das Frontend:
@@ -76,6 +80,7 @@ cd frontend
 npm ci --ignore-scripts --no-audit --no-fund
 npm test
 npm run test:coverage
+npm run audit
 npm run build
 ```
 
@@ -87,6 +92,11 @@ In VS Code müssen die Frontendtests über die empfohlenen Erweiterungen und Tas
 ausführbar sein. Die Tasks `Frontend: Tests` und `Frontend: Coverage` verwenden die
 projektlokale Frontend-Konfiguration und dürfen nicht auf globale Testtools angewiesen
 sein.
+
+Securityprüfungen sind verpflichtend: Bandit prüft den Python-/Home-Assistant-Code,
+pip-audit prüft Python-Abhängigkeiten und `npm audit` prüft die Vue-/Node-Kette.
+Neue Abhängigkeiten müssen begründet und in `pyproject.toml` beziehungsweise
+`package-lock.json` nachvollziehbar sein.
 
 Neue Fachlogik braucht Tests für Normalfall, Grenzwerte und Fehlerfälle. Besonders
 zu prüfen sind:

@@ -104,6 +104,10 @@ Das Dashboard sollte mindestens anzeigen:
 .venv\Scripts\python.exe -m pytest -q
 .venv\Scripts\python.exe -m pytest -q --cov=custom_components.warmwasser_zirkulation --cov-branch --cov-report=term-missing
 .venv\Scripts\python.exe -m compileall -q custom_components tests
+.venv\Scripts\python.exe -m pip install -e ".[security]"
+.venv\Scripts\python.exe -m bandit -r custom_components -ll
+# Das lokale Editable-Paket ist nicht auf PyPI veröffentlicht und wird übersprungen.
+.venv\Scripts\python.exe -m pip_audit --skip-editable
 ```
 
 ### Vue
@@ -113,6 +117,7 @@ cd frontend
 npm ci --ignore-scripts --no-audit --no-fund
 npm test
 npm run test:coverage
+npm run audit
 npm run build
 ```
 
@@ -120,7 +125,17 @@ In VS Code stehen dafür die Tasks `Frontend: Tests` und `Frontend: Coverage` zu
 Verfügung. Für die Anzeige im Test Explorer muss die empfohlene Vitest-Erweiterung
 installiert sein.
 
-## 7. Betrieb und Fehlersuche
+## 7. Sicherheitsprüfungen
+
+Die CI führt technologiebezogene Sicherheitsprüfungen aus:
+
+- **Python/Home Assistant:** Bandit prüft den Quellcode; pip-audit prüft Python-Abhängigkeiten.
+- **Vue/Node:** `npm audit --audit-level=high` prüft das Frontend-Lockfile und die transitive Dependency-Kette.
+- **Pull Requests:** GitHub Dependency Review bewertet neue oder aktualisierte Abhängigkeiten.
+
+Secrets gehören nicht in Quellcode, Logs, YAML, `.env`-Dateien oder Testdaten.
+
+## 8. Betrieb und Fehlersuche
 
 Bei Problemen zuerst prüfen:
 
@@ -136,7 +151,7 @@ Bei Problemen zuerst prüfen:
 Automatische Starts müssen bei Unsicherheit pausieren. Logs dürfen keine Secrets,
 Tokens oder vollständigen externen Payloads enthalten.
 
-## 8. Deinstallation
+## 9. Deinstallation
 
 1. Bedarfsautomatik deaktivieren.
 2. Integration unter **Einstellungen → Geräte & Dienste** entfernen.

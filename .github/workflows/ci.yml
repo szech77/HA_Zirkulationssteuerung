@@ -66,7 +66,43 @@ jobs:
       - name: Run frontend tests
         working-directory: frontend
         run: npm test
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: npm run audit
       - name: Build Vue frontend
         working-directory: frontend
         run: npm run build
+
+  security:
+    name: Python security checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install security tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[security]"
+      - name: Run Bandit
+        run: python -m bandit -r custom_components -ll
+      - name: Audit Python dependencies
+        # The local package is intentionally editable for the test install and is not published on PyPI.
+        run: python -m pip_audit --skip-editable
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
 
