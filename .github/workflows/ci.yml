@@ -155,7 +155,10 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          ignore: brands
+          # HACS liest die Lizenz über die GitHub-API vom Default-Branch (main).
+          # Außerhalb von main (Branches, PRs) wird die Lizenzprüfung daher
+          # übersprungen; auf main selbst bleibt sie verpflichtend.
+          ignore: ${{ github.ref == 'refs/heads/main' && 'brands' || 'brands license' }}
 
   release_metadata:
     name: Release metadata
