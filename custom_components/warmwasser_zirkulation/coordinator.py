@@ -43,8 +43,19 @@ class CirculationCoordinator:
 
     @classmethod
     def from_home_assistant(cls, hass, entry):
-        # Actual HA service calls are injected here in production; IDs remain config-driven.
-        return cls(hass, hass, entry.data["pump_entity"], entry.data.get("runtime_seconds", 120))
+        from .const import (
+            CONF_MAX_STARTS, CONF_PUMP_ENTITY, CONF_RUNTIME_SECONDS,
+            DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS,
+        )
+        from .ha_adapters import HomeAssistantPumpGateway, HomeAssistantStateStore
+
+        return cls(
+            HomeAssistantPumpGateway(hass),
+            HomeAssistantStateStore(hass, entry.entry_id),
+            entry.data[CONF_PUMP_ENTITY],
+            entry.data.get(CONF_RUNTIME_SECONDS, DEFAULT_RUNTIME_SECONDS),
+            entry.data.get(CONF_MAX_STARTS, DEFAULT_MAX_STARTS),
+        )
 
     async def async_start(self) -> None:
         persisted = await self.store.load()
@@ -72,8 +83,12 @@ class CirculationCoordinator:
             return await self._pause("pump_entity_missing")
         try:
             await self.pump.turn_on(self.pump_entity)
-        except Exception:
-            _LOGGER.exception("automatic pump start failed", extra={"pump_entity": self.pump_entity})
+        except Exception as error:
+            _LOGGER.error(
+                "automatic pump start failed; automatic start paused",
+                extra={"pump_entity": self.pump_entity, "reason": "pump_unreachable",
+                       "error_type": type(error).__name__},
+            )
             return await self._pause("pump_unreachable")
         self.runtime.pump_until = now + timedelta(seconds=self.runtime_seconds)
         self.runtime.daily_starts += 1

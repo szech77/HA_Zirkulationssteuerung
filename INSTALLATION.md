@@ -37,6 +37,15 @@ Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen ID
 Bei einer manuellen Installation müssen Updates erneut kopiert werden. HACS übernimmt
 die Aktualisierung, ersetzt aber keine fachliche Prüfung der Konfiguration.
 
+Die Laufzeitdaten liegen pro Konfigurationseintrag in Home Assistants Speicherverwaltung
+unter `.storage/warmwasser_zirkulation.<entry_id>`. Beim Austausch des Integrationsordners
+bleiben diese Daten erhalten. Eine neue Installation startet mit deaktivierter Automatik;
+der Integrationsstart schaltet die Pumpe nicht. Gespeicherte Pumpenlaufzeiten enthalten
+eine Zeitzone. Ungültige gespeicherte Zustände brechen die Einrichtung ab, anstatt
+ungeprüfte Werte für automatische Starts zu verwenden. Als Pumpen-Entity wird ein
+`switch` erwartet; ein Einschaltbefehl setzt einen aktuell bestätigten Zustand `off`
+voraus. Servicefehler werden an den Coordinator weitergegeben.
+
 ## 3. Konfiguration
 
 Im Config Flow mindestens folgende Werte angeben:
