@@ -2,7 +2,7 @@
   "domain": "warmwasser_zirkulation",
   "name": "Warmwasser-Zirkulation",
   "version": "0.1.0",
-  "documentation": "https://github.com/example/ha-warmwasser-zirkulation",
+  "documentation": "https://github.com/szech77/HA_Zirkulationssteuerung",
   "codeowners": [],
   "config_flow": true,
   "iot_class": "local_polling",

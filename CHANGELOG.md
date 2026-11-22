@@ -8,6 +8,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 ### Hinzugefügt
 
 - CI-Prüfungen für Python, Vue, Coverage und technologiebezogene Security-Scans.
+- Home-Assistant-Validierung mit Hassfest und einen tag-basierten GitHub-Release-Workflow.
 - Dokumentation für Beiträge, Logging und Security.
 - Apache-2.0-Lizenzdatei.
 

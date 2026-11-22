@@ -10,7 +10,9 @@ Die GitHub-Actions-Pipeline prüft Pull Requests gegen `main` sowie Pushes auf
 - Vue/Node: reproduzierbare Installation mit `npm ci`, Vitest, Coverage, `npm audit`
   und Vite-Build
 - Python Security: Bandit und pip-audit
+- Home Assistant: Hassfest validiert Manifest, Strings und Integrationsstruktur
 - Pull Requests: GitHub Dependency Review
+- Versionierte Tags `vX.Y.Z`: Release wird nach erfolgreicher Validierung erstellt
 
 Die Pipeline verwendet keine produktiven Home-Assistant-Zugangsdaten. Der lokale
 Projektname wird bei pip-audit als Editable-Paket übersprungen, weil er nicht auf
@@ -24,3 +26,10 @@ Verfügung.
 
 Ein grüner Lauf bestätigt nur Build-, Test- und statische Prüfungen. Eine produktive
 Aktivierung oder ein realer Pumpenstart ist ausdrücklich nicht Bestandteil der CI.
+
+## Release
+
+Ein Release wird nur durch einen Tag im Format `vX.Y.Z` ausgelöst. Der Tag muss mit
+der Version in `custom_components/warmwasser_zirkulation/manifest.json` und einem
+gleichnamigen Abschnitt in `CHANGELOG.md` übereinstimmen. Erst wenn Python, Frontend,
+Security und Hassfest erfolgreich waren, erstellt die Pipeline das GitHub Release.
