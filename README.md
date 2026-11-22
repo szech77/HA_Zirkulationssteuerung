@@ -16,6 +16,10 @@ und expliziter Aktivierung Schaltbefehle.
 
 ## Einrichtung
 
+Die vollständige Anleitung steht in [INSTALLATION.md](./INSTALLATION.md).
+
+Kurzablauf:
+
 1. Integration über UI konfigurieren: Vorlaufsensor, Puffersensor optional,
    Pumpenschalter, Bundesland und Laufzeit setzen.
 2. Mindestens mehrere Tage im Modus `Monitoring` beobachten. InfluxDB ist optional.
