@@ -3,23 +3,28 @@
 Alle bemerkenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
-## [Unreleased]
+## New Version
 
-### Hinzugefügt
-
-- CI-Prüfungen für Python, Vue, Coverage und technologiebezogene Security-Scans.
-- Home-Assistant-Validierung mit Hassfest und einen tag-basierten GitHub-Release-Workflow.
-- Dokumentation für Beiträge, Logging und Security.
-- Apache-2.0-Lizenzdatei.
-
-### Geändert
-
-- Frontend-Coverage wird in der Pipeline explizit ausgeführt.
-
-## [0.1.0] - 2026-11-22
-
-### Hinzugefügt
+### Features
 
 - Initiale Home-Assistant-Custom-Integration für lernende Warmwasserzirkulation.
+- Vue-3-Oberfläche mit Vitest-Tests sowie CI- und Security-Prüfungen.
+- Automatische Beta-/Stable-Releaseplanung mit expliziter Maintainer-Freigabe.
+
+### Bugfixes
+
+- Keine.
+
+### Breaking Changes
+
+- Keine.
+
+### Security
+
+- Bandit, pip-audit, npm audit und Hassfest werden in der CI ausgeführt.
+
+## 0.1.0 - 2026-11-22
+
+### Features
+
 - Reine Fachlogik mit synthetischen fachlichen Tests.
-- Vue-3-Oberfläche mit Vitest-Tests.

@@ -12,7 +12,7 @@ Die GitHub-Actions-Pipeline prüft Pull Requests gegen `main` sowie Pushes auf
 - Python Security: Bandit und pip-audit
 - Home Assistant: Hassfest validiert Manifest, Strings und Integrationsstruktur
 - Pull Requests: GitHub Dependency Review
-- Versionierte Tags `vX.Y.Z`: Release wird nach erfolgreicher Validierung erstellt
+- Branch-Pushes: Beta auf `feature/**`, `bug/**` und `bugfix/**`, stabil auf `main`
 
 Die Pipeline verwendet keine produktiven Home-Assistant-Zugangsdaten. Der lokale
 Projektname wird bei pip-audit als Editable-Paket übersprungen, weil er nicht auf
@@ -29,7 +29,21 @@ Aktivierung oder ein realer Pumpenstart ist ausdrücklich nicht Bestandteil der 
 
 ## Release
 
-Ein Release wird nur durch einen Tag im Format `vX.Y.Z` ausgelöst. Der Tag muss mit
-der Version in `custom_components/warmwasser_zirkulation/manifest.json` und einem
-gleichnamigen Abschnitt in `CHANGELOG.md` übereinstimmen. Erst wenn Python, Frontend,
-Security und Hassfest erfolgreich waren, erstellt die Pipeline das GitHub Release.
+Ein Push auf `feature/**`, `bug/**` oder `bugfix/**` erzeugt nach erfolgreicher
+Validierung einen Beta-Kandidaten. Ein Push auf `main` erzeugt einen stabilen
+Kandidaten. Vor der Veröffentlichung pausiert der Release-Job an einem geschützten
+GitHub-Environment:
+
+- `beta-release` für Beta-Releases
+- `stable-release` für finale Releases
+
+Die erforderlichen Reviewer werden unter `Settings > Environments` konfiguriert.
+Nur ein dort hinterlegter Reviewer kann in GitHub Actions über `Review deployments`
+mit `Approve and deploy` freigeben. Für die finale Umgebung sollten zusätzlich nur
+`main`-Deployments erlaubt und der Admin-Bypass deaktiviert werden. Optional kann
+`Prevent self-review` aktiviert werden.
+
+Die Release-Version wird aus dem strukturierten Abschnitt `## New Version` in
+[CHANGELOG.md](./CHANGELOG.md) berechnet. Ohne Freigabe oder bei Ablehnung wird der
+Release-Job nicht ausgeführt; es werden keine Issues und keine Kommentar-Polling-
+Skripte benötigt.

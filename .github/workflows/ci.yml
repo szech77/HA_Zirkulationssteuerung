@@ -3,9 +3,9 @@ name: CI
 on:
   push:
     branches: [main, "feature/**", "bug/**", "bugfix/**"]
-    tags: ["v*.*.*"]
   pull_request:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 
 permissions:
@@ -16,51 +16,38 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  python:
-    name: Python tests (${{ matrix.python-version }})
+  tests:
+    name: Python and Vue tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - name: Install test dependencies
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Python test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[test]"
       - name: Compile Python sources
-        run: python -m compileall -q custom_components tests
-      - name: Run tests
+        run: python -m compileall -q custom_components tests tools
+      - name: Run Python tests with coverage
         run: >-
           python -m pytest -q
           --cov=custom_components.warmwasser_zirkulation
           --cov-branch
           --cov-report=term-missing
           --cov-report=xml
-
-  frontend:
-    name: Vue frontend build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -78,91 +65,130 @@ jobs:
         run: npm run build
 
   security:
-    name: Python security checks
+    name: Source security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install security tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[security]"
+      - name: Python static security analysis
+        run: python -m bandit -r custom_components tools -ll
+      - name: Audit Python dependencies
+        run: python -m pip_audit --skip-editable
+
+  integration:
+    name: Home Assistant and HACS metadata
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Run Hassfest validation
+        uses: home-assistant/actions/hassfest@master
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  release_metadata:
+    name: Release metadata
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/bug/') || startsWith(github.ref, 'refs/heads/bugfix/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-          cache: pip
-      - name: Install security tools
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[security]"
-      - name: Run Bandit
-        run: python -m bandit -r custom_components -ll
-      - name: Audit Python dependencies
-        # The local package is intentionally editable for the test install and is not published on PyPI.
-        run: python -m pip_audit --skip-editable
-
-  dependency-review:
-    name: Dependency review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
-
-  hassfest:
-    name: Home Assistant validation
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - name: Run Hassfest validation
-        uses: home-assistant/actions/hassfest@master
-
-  release:
-    name: Create GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [python, frontend, security, hassfest]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Verify tag matches integration version
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          manifest_version="$(python -c 'import json; print(json.load(open("custom_components/warmwasser_zirkulation/manifest.json", encoding="utf-8"))["version"])')"
-          expected_tag="v${manifest_version}"
-          test "${RELEASE_TAG}" = "${expected_tag}" || {
-            echo "Tag ${RELEASE_TAG} stimmt nicht mit ${expected_tag} aus manifest.json überein."
-            exit 1
-          }
-      - name: Extract changelog entry
-        env:
-          RELEASE_VERSION: ${{ github.ref_name }}
-        run: |
-          version="${RELEASE_VERSION#v}"
-          awk -v version="${version}" '
-            $0 ~ "^## \\[" version "\\]" { found=1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' CHANGELOG.md > release-notes.md
-          test -s release-notes.md || {
-            echo "Kein Changelog-Eintrag für Version ${version} gefunden."
-            exit 1
-          }
-      - name: Create GitHub release
+      - name: Validate draft and calculate release version
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "${RELEASE_TAG}" --verify-tag --title "Warmwasser-Zirkulation ${RELEASE_TAG}" --notes-file release-notes.md
+          REPOSITORY: ${{ github.repository }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'stable' || 'beta' }}
+          BUILD: ${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: >-
+          python tools/release.py plan
+          --repository "$REPOSITORY" --channel "$CHANNEL"
+          --beta-number "$BUILD" --branch "$BRANCH"
 
+  required:
+    name: Required checks
+    needs: [tests, security, integration, release_metadata]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require successful tests and validation
+        env:
+          TESTS: ${{ needs.tests.result }}
+          SECURITY: ${{ needs.security.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          RELEASE: ${{ needs.release_metadata.result }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          test "$TESTS" = success
+          test "$SECURITY" = success
+          test "$INTEGRATION" = success
+          if [ "$EVENT" = push ]; then
+            test "$RELEASE" = success
+          else
+            test "$RELEASE" = skipped
+          fi
+
+  publish:
+    name: Publish stable or beta HACS release
+    needs: required
+    if: >-
+      !cancelled() && needs.required.result == 'success' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') ||
+      startsWith(github.ref, 'refs/heads/bug/') || startsWith(github.ref, 'refs/heads/bugfix/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'stable-release' || 'beta-release' }}
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Build the Vue bundle from the approved source
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Publish immutable approved release snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'stable' || 'beta' }}
+          BUILD: ${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: >-
+          python tools/release.py publish
+          --repository "$REPOSITORY" --commit "$COMMIT"
+          --channel "$CHANNEL" --beta-number "$BUILD" --branch "$BRANCH"
