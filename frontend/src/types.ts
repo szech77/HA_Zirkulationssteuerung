@@ -12,5 +12,5 @@ export interface EntryStatus {
   settings: ControlSettings; settings_revision: number;
   country: string | null; subdivision: string | null; heatmap: Heatmap | null;
 }
-export interface DashboardState { entries: EntryStatus[]; loading: boolean; error: string | null; updatedAt: string | null }
-export interface HomeAssistant { callWS<T>(message: { type: string; [key: string]: unknown }): Promise<T> }
+export interface DashboardState { darkMode?: boolean; entries: EntryStatus[]; loading: boolean; error: string | null; updatedAt: string | null }
+export interface HomeAssistant { themes?: { darkMode?: boolean }; callWS<T>(message: { type: string; [key: string]: unknown }): Promise<T> }

@@ -18,6 +18,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Das Projektlogo im Dashboard-Kopf und sein Motiv als natives HA-Seitenleisten-Icon anzeigen. Die Dashboard-Variante nach der Home-Assistant-Themeneinstellung wechseln; das kleine Icon-Modul unabhängig vom Öffnen des Panels laden und bei Entladen des letzten Eintrags aus den Frontend-Ressourcen entfernen.
 - Ein eigenes Logo aus Wassertropfen und Zirkulationspfeilen im lokalen `brand/`-Verzeichnis mitliefern, damit Home Assistant ab 2026.3 das Symbol in Geräte- und Integrationsansichten statt des Platzhalters anzeigt. Transparente Varianten für helle/dunkle Ansichten und hochauflösende Displays bereitstellen; die native Logo-Rückfalllogik und Authentifizierung erhalten.
 - Die DOM-Testumgebung `jsdom` von 25.0.1 auf 31.0.0 aktualisieren und damit das veraltete `whatwg-encoding` aus der npm-Installation entfernen. Den Entwicklungs-/Build-Prozess auf Node 22 ab 22.22.2, Node 24 ab 24.15.0 oder Node 26+ festlegen; die CI mit Node 22.22.2 prüfen. Lifecycle-Skripte über die Projektkonfiguration deaktiviert halten.
 - Die Navigationsschleife zwischen Dashboard und Integrationsseite beheben: Das Seitenleistenpanel nicht als HA-Konfigurationspanel registrieren, damit das Zahnrad den nativen Optionsdialog öffnet. Den Konfigurationslink mit einem Hinweis auf das Zahnrad am gewünschten Eintrag versehen.

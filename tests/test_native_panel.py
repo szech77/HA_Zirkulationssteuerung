@@ -24,6 +24,7 @@ class TestNativePanel(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.directory = TemporaryDirectory(prefix='circulation-panel-')
         self.hass = HomeAssistant(self.directory.name)
+        self.hass.data[frontend.DATA_EXTRA_MODULE_URL] = frontend.UrlManager(lambda *args: None, [])
         self.entries = {}
         self.hass.http = SimpleNamespace(async_register_static_paths=AsyncMock())
         self.hass.config_entries = SimpleNamespace(async_get_entry=self.entries.get,
@@ -56,12 +57,16 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         assert frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
         panel = self.hass.data[frontend.DATA_PANELS]['warmwasser-zirkulation']
         assert panel.require_admin is True
+        assert panel.sidebar_icon == 'warmwasser:circulation'
+        assert self.hass.data[frontend.DATA_EXTRA_MODULE_URL].urls == frozenset(['/warmwasser-zirkulation-icons.js?v=verified-build'])
         # HA gives config panels precedence over the native options dialog.
         # Keeping this unset lets the integration gear open ConfigFlow options.
         assert panel.config_panel_domain is None
         assert panel.config['_panel_custom']['name'] == 'warmwasser-panel'
         assert panel.config['_panel_custom']['module_url'].endswith('panel.js?v=verified-build')
         self.hass.http.async_register_static_paths.assert_awaited_once()
+        paths = self.hass.http.async_register_static_paths.call_args.args[0]
+        assert {path.url_path for path in paths} == {'/warmwasser-zirkulation-static', '/warmwasser-zirkulation-icons.js'}
         self.hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(self.entry, ['sensor', 'switch'])
         connection = SimpleNamespace(user=SimpleNamespace(is_admin=True), send_result=Mock(), send_error=Mock())
         websocket_status(self.hass, connection, {'id': 1, 'type': DOMAIN + '/status'})
@@ -73,6 +78,7 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         assert await async_unload_entry(self.hass, self.entry)
         assert not frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
         assert not self.hass.data[OBSERVERS]
+        assert not self.hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
 
     async def test_non_admins_and_anonymous_connections_cannot_read_operating_data(self):
         for user in (None, SimpleNamespace(is_admin=False)):
@@ -155,9 +161,11 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         await async_setup_entry(self.hass, another)
         assert await async_unload_entry(self.hass, self.entry)
         assert frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
+        assert len(self.hass.data[frontend.DATA_EXTRA_MODULE_URL].urls) == 1
         self.hass.http.async_register_static_paths.assert_awaited_once()
         assert await async_unload_entry(self.hass, another)
         assert not frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
+        assert not self.hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
 
     async def test_failed_platform_unload_keeps_panel_and_coordinator(self):
         await async_setup_entry(self.hass, self.entry)
@@ -216,6 +224,7 @@ class TestNativePanel(IsolatedAsyncioTestCase):
             assert not self.hass.data[DOMAIN]
             assert not self.hass.data[OBSERVERS]
             assert not frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
+            assert not self.hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
         assert self.hass.config_entries.async_unload_platforms.await_count == 2
 
     async def test_bad_observation_store_is_preserved_and_setup_is_not_published(self):

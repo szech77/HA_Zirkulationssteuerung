@@ -16,6 +16,7 @@ export class WarmwasserPanel extends HTMLElement {
   set hass(value: HomeAssistant) {
     const firstConnection = this.currentHass === null
     this.currentHass = value
+    if (this.state) this.state.darkMode = Boolean(value.themes?.darkMode)
     if (firstConnection && this.state && this.state.updatedAt === null) void this.refresh()
   }
 
@@ -28,7 +29,7 @@ export class WarmwasserPanel extends HTMLElement {
     stylesheet.href = '/warmwasser-zirkulation-static/panel.css'
     const target = document.createElement('div')
     root.append(stylesheet, target)
-    this.state = reactive({ entries: [], loading: true, error: null, updatedAt: null })
+    this.state = reactive({ darkMode: Boolean(this.currentHass?.themes?.darkMode), entries: [], loading: true, error: null, updatedAt: null })
     this.app = createApp(PanelApp, { state: this.state, saveSettings: (id: string, settings: ControlSettings, revision: number) => this.configure(id, settings, revision), onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
     this.app.mount(target)
     this.timer = window.setInterval(() => { if (document.visibilityState !== 'hidden') void this.refresh() }, 15_000)

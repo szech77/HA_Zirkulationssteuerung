@@ -39,7 +39,7 @@ Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen ID
    `<config>/custom_components/warmwasser_zirkulation/` kopieren.
 2. Prüfen, dass unter anderem `manifest.json`, `config_flow.py`, `coordinator.py`,
    `sensor.py`, `switch.py`, `brand/icon.png`, `brand/icon@2x.png`,
-   `brand/dark_icon.png`, `brand/dark_icon@2x.png`, `web/panel.js` und
+   `brand/dark_icon.png`, `brand/dark_icon@2x.png`, `icons.js`, `web/panel.js` und
    `web/panel.css` vorhanden sind.
 3. Home Assistant neu starten.
 4. Die Integration über die Geräte-&-Dienste-Seite hinzufügen.
@@ -64,6 +64,13 @@ Alle vier PNG-Dateien mitkopieren, HA vollständig neu starten und den Browser m
 **Strg+F5** neu laden. Es ist keine Logo-URL oder zusätzliche Integration nötig.
 Das quadratische Symbol dient über HAs eingebaute Rückfalllogik auch als Logo.
 Für ältere HA-Versionen steht diese lokale Brand-Anzeige nicht zur Verfügung.
+
+Das Dashboard zeigt das farbige Logo im Kopfbereich und folgt bei Hell/Dunkel der
+Home-Assistant-Themeneinstellung. In der Seitenleiste verwendet der Eintrag das
+Motiv als natives Icon in HAs Menüfarben. `icons.js` wird dazu automatisch als
+kleines Frontend-Modul registriert, auch vor dem ersten Öffnen des Dashboards;
+ein zusätzlicher Lovelace-Ressourceneintrag ist nicht erforderlich. Bei Updates
+`icons.js` und das neu gebaute `web/` mitkopieren und HA/Browser neu laden.
 
 ## 3. Konfiguration
 

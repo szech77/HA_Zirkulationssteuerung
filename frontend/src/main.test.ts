@@ -62,4 +62,14 @@ describe('HA custom panel bridge', () => {
     expect(panel.shadowRoot!.textContent).toContain('Steuerfreigabe ist gesetzt')
   })
 
+  it('updates the UI logo when the HA theme changes without reloading the panel', async () => {
+    const callWS=vi.fn().mockResolvedValue({entries:[entry()]})
+    const panel=document.createElement('warmwasser-panel') as WarmwasserPanel
+    panel.hass={callWS,themes:{darkMode:false}}; document.body.append(panel); await flushPromises()
+    const light=panel.shadowRoot!.querySelector('.brand-logo')!.getAttribute('src')
+    panel.hass={callWS,themes:{darkMode:true}}; await flushPromises()
+    expect(panel.shadowRoot!.querySelector('.brand-logo')!.getAttribute('src')).not.toBe(light)
+    expect(callWS).toHaveBeenCalledTimes(1)
+  })
+
 })
