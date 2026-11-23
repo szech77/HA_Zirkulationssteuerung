@@ -85,3 +85,7 @@ Die Python-3.14-Testmatrix und der Security-Job installieren zusätzlich
 `requirements-ha-test.txt` mit Home Assistant 2026.11.2. Dadurch laufen die nativen
 HA-Tests in der Pflicht-CI und pip-audit erfasst auch deren Testabhängigkeiten.
 Unter Python 3.12/3.13 bleibt die HA-Testinstallation per Versionsmarker ausgenommen.
+
+Die Frontend-Prüfungen und der Release-Build verwenden Node 22.22.2, passend zur
+Mindestversion der DOM-Testumgebung. Der npm-Audit bleibt aktiv; gezielte
+Unterpaket-Overrides beheben die Formatter-Befunde, ohne Scanner zu unterdrücken.

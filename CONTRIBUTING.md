@@ -18,6 +18,26 @@ sein.
    npm ci --ignore-scripts --no-audit --no-fund
    ```
 
+## Frontend-Abhängigkeiten
+
+Für die Frontend-Werkzeuge Node **22.22.2 oder neuer aus der 22er-Reihe**,
+**24.15.0 oder neuer aus der 24er-Reihe** oder **26+** verwenden. Die CI prüft
+Node 22.22.2. `.npmrc` deaktiviert Lifecycle-Skripte auch bei einem einfachen
+`npm ci`; `package-lock.json` weiterhin zusammen mit `package.json` pflegen.
+
+`jsdom` 31.0.0 ersetzt die veraltete DOM-Testkette. `js-beautify` 2.0.3 verwendet
+noch ältere `glob`-/`minimatch`-Bereiche. Die Overrides in `package.json` begrenzen
+deshalb diese Kette auf `glob` 14.0.4 und `minimatch` 11.0.5. Die verwendeten APIs
+`globSync`, `hasMagic`, `Minimatch.match` und `escape` bleiben verfügbar; Tests prüfen
+Vue-HTML-Formatierung und EditorConfig-Dateimuster. Sobald der Upstream selbst
+gepatchte Bereiche verwendet, die Overrides neu bewerten.
+
+Hintergrund: [glob-Advisory](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4),
+[minimatch-Advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+Neue Versionen beim Auflösen mit `npm install --min-release-age=14` auswählen
+(npm 11); `npm ci` installiert danach die geprüfte Lockdatei. Der Dependabot-Cooldown
+beträgt ebenfalls 14 Tage.
+
 ## Änderungen entwickeln
 
 - Fachlogik gehört in `domain.py` und bleibt frei von Home-Assistant-Importen.

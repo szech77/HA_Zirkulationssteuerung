@@ -16,6 +16,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Die DOM-Testumgebung `jsdom` von 25.0.1 auf 31.0.0 aktualisieren und damit das veraltete `whatwg-encoding` aus der npm-Installation entfernen. Den Entwicklungs-/Build-Prozess auf Node 22 ab 22.22.2, Node 24 ab 24.15.0 oder Node 26+ festlegen; die CI mit Node 22.22.2 prüfen. Lifecycle-Skripte über die Projektkonfiguration deaktiviert halten.
 - Die Navigationsschleife zwischen Dashboard und Integrationsseite beheben: Das Seitenleistenpanel nicht als HA-Konfigurationspanel registrieren, damit das Zahnrad den nativen Optionsdialog öffnet. Den Konfigurationslink mit einem Hinweis auf das Zahnrad am gewünschten Eintrag versehen.
 - Das gebaute Panel-Bundle und Stylesheet im Integrationsordner erzeugen und in den Release-Snapshot aufnehmen; Veröffentlichungen ohne gebaute Assets ablehnen. Panel und Beobachtungsabonnements bei Entladen oder fehlgeschlagener Einrichtung aufräumen.
 - Den Integrationsstart mit echten Home-Assistant-Adaptern statt des `hass`-Platzhalters für Speicher und Pumpensteuerung korrigieren. Laufzeitdaten pro Konfigurationseintrag asynchron speichern und zeitzonenbehaftete Pumpenlaufzeiten wiederherstellen. Ungültige gespeicherte Zustände verhindern den Start; unbekannte Pumpenzustände verhindern Einschaltbefehle. Das konfigurierte Tageslimit übernehmen und Servicefehler ohne rohe Ausnahmedetails protokollieren.
@@ -26,6 +27,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Security
 
+- In der ausschließlich für Tests verwendeten Kette `@vue/test-utils` 2.6.0 → `js-beautify` 2.0.3 die betroffenen Unterpakete über gezielte Overrides aktualisieren: `glob` 13.0.7 → 14.0.4 und `minimatch` 10.2.6 → 11.0.5. Damit die gemeldeten Befunde CVE-2026-118773 (Abbruch von Dateisystemdurchläufen) und CVE-2026-118764 (Musterverstärkung) beheben; Formatter- und EditorConfig-Kompatibilität prüfen. Versionen mit mindestens 14 Tagen Veröffentlichungsalter verwenden.
 - Panel und Status-WebSocket auf authentifizierte HA-Administratoren begrenzen. HA-Authentifizierung verwenden und private Fehlerantworten weder im Dashboard noch in Browsermeldungen offenlegen.
 - Bandit, pip-audit, npm audit und Hassfest werden in der CI ausgeführt.
 

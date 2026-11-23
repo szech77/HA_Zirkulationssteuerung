@@ -170,6 +170,8 @@ Mit Home Assistant 2026.11.2 getestet.
 
 ### Vue
 
+Node 22 ab 22.22.2, Node 24 ab 24.15.0 oder Node 26+ verwenden.
+
 ```powershell
 cd frontend
 npm ci --ignore-scripts --no-audit --no-fund
