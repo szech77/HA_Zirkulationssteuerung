@@ -14,7 +14,9 @@ innerhalb konfigurierter Freigabezeiten bedarfsabhängige Schaltbefehle.
 * `sensor.py` und `switch.py` sind dünne HA-Adapter. Keine produktiven Entity-IDs oder
   Zugangsdaten werden erfunden; alle Identitäten bleiben konfigurierbar.
 * `observations.py` sammelt Live-Beobachtungen für die begrenzte Heatmap-Historie und ruft die serialisierte Steuerung browserunabhängig auf.
-* `frontend/` enthält das Vue-3-Seitenleistenpanel mit authentifiziertem Zugriff auf HA-Betriebsdaten.
+* `frontend/src/` enthält das Vue-3-Panel mit `App.vue`, `views`, `components`,
+  `composables`, `router`, `stores` und `assets`. Die Verzeichnisaufteilung steht in
+  [CONTRIBUTING.md](./CONTRIBUTING.md#frontend-struktur).
 
 ## Einrichtung
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { EntryStatus, ImportHistory } from './types'
+import type { EntryStatus, ImportHistory } from '../types'
 const props=defineProps<{entry:EntryStatus; importHistory?:ImportHistory}>()
 const pending=ref(false), error=ref(''), message=ref('')
 const descriptions:Record<string,string>={idle:'Die Lernbasis wird aus Live-Messungen aufgebaut.',loading:'HA-Historie wird eingelesen',complete:'HA-Historie eingelesen',unavailable:'HA-Recorder ist nicht verfügbar. Die Integration lernt aus Live-Messungen.',error:'HA-Historie konnte nicht vollständig eingelesen werden. Live-Messungen werden weiter ausgewertet.'}

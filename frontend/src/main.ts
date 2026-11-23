@@ -1,24 +1,16 @@
-import { createApp, reactive, type App } from 'vue'
-import PanelApp from './PanelApp.vue'
-import type { ControlSettings, DashboardState, EntryStatus, HomeAssistant } from './types'
-import './panel.css'
+import { createApp, type App as VueApp } from 'vue'
+import App from './App.vue'
+import { useHomeAssistantPanel } from './composables/useHomeAssistantPanel'
+import { createPanelRouter } from './router'
+import type { ControlSettings, HomeAssistant } from './types'
+import './assets/styles/panel.css'
 
+// The custom-element bridge only mounts Vue and forwards the HA connection.
 export class WarmwasserPanel extends HTMLElement {
-  private currentHass: HomeAssistant | null = null
-  private app: App | null = null
-  private state: DashboardState | null = null
-  private timer: number | null = null
-  private configuring = false
-  private statusSequence = 0
-  private pending = false
-  private generation = 0
+  private app: VueApp | null = null
+  private readonly panel = useHomeAssistantPanel()
 
-  set hass(value: HomeAssistant) {
-    const firstConnection = this.currentHass === null
-    this.currentHass = value
-    if (this.state) this.state.darkMode = Boolean(value.themes?.darkMode)
-    if (firstConnection && this.state && this.state.updatedAt === null) void this.refresh()
-  }
+  set hass(value: HomeAssistant) { this.panel.setHass(value) }
 
   connectedCallback() {
     if (this.app) return
@@ -29,66 +21,28 @@ export class WarmwasserPanel extends HTMLElement {
     stylesheet.href = '/warmwasser-zirkulation-static/panel.css'
     const target = document.createElement('div')
     root.append(stylesheet, target)
-    this.state = reactive({ darkMode: Boolean(this.currentHass?.themes?.darkMode), entries: [], loading: true, error: null, updatedAt: null })
-    this.app = createApp(PanelApp, { state: this.state, importHistory: (id: string) => this.importHistory(id), saveSettings: (id: string, settings: ControlSettings, revision: number) => this.configure(id, settings, revision), onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
+    const router = createPanelRouter()
+    this.app = createApp(App, {
+      state: this.panel.state, saveSettings: this.panel.configure, importHistory: this.panel.importHistory,
+      onRefresh: () => void this.panel.refresh(),
+      onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })),
+    })
+    this.app.use(router)
     this.app.mount(target)
-    this.timer = window.setInterval(() => { if (document.visibilityState !== 'hidden') void this.refresh() }, 15_000)
-    void this.refresh()
+    void router.replace({ name: 'dashboard' })
+    this.panel.connect()
   }
 
   disconnectedCallback() {
-    this.generation++
-    if (this.timer !== null) window.clearInterval(this.timer)
-    this.timer = null
+    this.panel.disconnect()
     this.app?.unmount()
     this.app = null
-    this.state = null
-    this.pending = false
   }
 
-  async configure(entryId: string, settings: ControlSettings, revision: number) {
-    return this.command({type:'warmwasser_zirkulation/configure',entry_id:entryId,settings,revision})
+  refresh() { return this.panel.refresh() }
+  configure(entryId: string, settings: ControlSettings, revision: number) {
+    return this.panel.configure(entryId, settings, revision)
   }
-
-  async importHistory(entryId: string) {
-    return this.command({type:'warmwasser_zirkulation/import_history',entry_id:entryId})
-  }
-
-  private async command(message: {type:string; [key:string]:unknown}) {
-    const hass = this.currentHass
-    if (!hass || !this.isConnected) throw new Error('unavailable')
-    if (this.configuring) throw new Error('busy')
-    this.configuring = true
-    this.statusSequence++
-    const generation = this.generation
-    try {
-      await hass.callWS(message)
-      const response = await hass.callWS<{ entries: EntryStatus[] }>({ type: 'warmwasser_zirkulation/status' })
-      if (generation !== this.generation || !this.state || !Array.isArray(response.entries)) throw new Error('unavailable')
-      this.state.entries = response.entries
-      this.state.updatedAt = new Date().toISOString()
-      this.state.error = null
-    } finally { this.configuring = false }
-  }
-
-  async refresh() {
-    if (!this.currentHass || !this.state || this.pending || this.configuring || !this.isConnected) return
-    const generation = this.generation
-    const sequence = ++this.statusSequence
-    this.pending = true
-    this.state.loading = true
-    try {
-      const response = await this.currentHass.callWS<{ entries: EntryStatus[] }>({ type: 'warmwasser_zirkulation/status' })
-      if (generation !== this.generation || sequence !== this.statusSequence || !this.state) return
-      if (!response || !Array.isArray(response.entries)) throw new Error('invalid_response')
-      this.state.entries = response.entries
-      this.state.error = null
-      this.state.updatedAt = new Date().toISOString()
-    } catch {
-      if (generation === this.generation && sequence === this.statusSequence && this.state) this.state.error = 'Betriebsdaten konnten nicht geladen werden. Verbindung und Administratorrechte prüfen.'
-    } finally {
-      if (generation === this.generation && this.state) { this.state.loading = false; this.pending = false }
-    }
-  }
+  importHistory(entryId: string) { return this.panel.importHistory(entryId) }
 }
 if (!customElements.get('warmwasser-panel')) customElements.define('warmwasser-panel', WarmwasserPanel)

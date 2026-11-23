@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import lightLogo from '../../branding/icon.svg'
-import darkLogo from '../../branding/dark_icon.svg'
-import WarmwasserDashboard from './WarmwasserDashboard.vue'
-import type { DashboardState, SaveSettings, ImportHistory } from './types'
+import lightLogo from '../assets/images/icon.svg'
+import darkLogo from '../assets/images/dark_icon.svg'
+import WarmwasserDashboard from '../components/WarmwasserDashboard.vue'
+import type { DashboardState, SaveSettings, ImportHistory } from '../types'
 defineProps<{ state: DashboardState; saveSettings?: SaveSettings; importHistory?: ImportHistory }>()
 defineEmits<{ refresh: []; menu: [] }>()
 const configurationOpen = ref(false)

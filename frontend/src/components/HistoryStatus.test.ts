@@ -1,7 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import HistoryStatus from './HistoryStatus.vue'
-import { entry } from './test-data'
+import { entry } from '../test/fixtures'
 
 describe('HA history bootstrap and learned planning status', () => {
   it('shows progress and disables duplicate imports', () => {

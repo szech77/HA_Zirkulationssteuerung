@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue'
-import type { HeatCell, Heatmap } from './types'
+import type { HeatCell, Heatmap } from '../types'
 const props = defineProps<{ data: Heatmap }>()
 const focused = ref({ row: 0, slot: 0 })
 const selected = ref<{row:string;slot:number}|null>(null)

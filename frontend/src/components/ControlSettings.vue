@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { ControlSettings, EntryStatus, SaveSettings, TimeWindow } from './types'
+import type { ControlSettings, EntryStatus, SaveSettings, TimeWindow } from '../types'
 const props = defineProps<{ entry: EntryStatus; saveSettings?: SaveSettings }>()
 const clone = (settings: ControlSettings): ControlSettings => JSON.parse(JSON.stringify(settings))
 const draft = ref(clone(props.entry.settings))

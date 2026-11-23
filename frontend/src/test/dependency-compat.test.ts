@@ -5,8 +5,8 @@ import { mkdtempSync, writeFileSync, readFileSync, realpathSync, rmSync } from '
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
-import WarmwasserDashboard from './WarmwasserDashboard.vue'
-import { entry } from './test-data'
+import WarmwasserDashboard from '../components/WarmwasserDashboard.vue'
+import { entry } from './fixtures'
 
 const require = createRequire(import.meta.url)
 

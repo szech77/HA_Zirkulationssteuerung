@@ -2,7 +2,7 @@
 
 Eigenes Symbol für die Warmwasser-Zirkulation: orangefarbener Wassertropfen und
 petrolfarbene Zirkulationspfeile. Keine Markenbestandteile von Home Assistant.
-Die SVG-Dateien sind bearbeitbare Vektorquellen; sie gehören wie der übrige
+Die SVG-Dateien unter `frontend/src/assets/images/` sind bearbeitbare Vektorquellen; sie gehören wie der übrige
 Projektcode zur Apache-2.0-Lizenz dieses Repositorys.
 
 Die Integration liefert transparente PNG-Exporte unter
@@ -19,8 +19,8 @@ Logo-Anfragen. Der Zugriff bleibt durch HAs Brands-API authentifiziert.
 Referenz: [Integration brands and images](https://contributors.home-assistant.io/core/integrations/brands/).
 
 
-Das Panel bindet `icon.svg` und `dark_icon.svg` direkt in sein gebautes Bundle ein;
-die HA-Themeneinstellung wählt die Variante. `sidebar.svg` enthält die gefüllten
+Das Panel bindet `assets/images/icon.svg` und `assets/images/dark_icon.svg` direkt in sein gebautes Bundle ein;
+die HA-Themeneinstellung wählt die Variante. `assets/images/sidebar.svg` enthält die gefüllten
 Konturen für `warmwasser:circulation`. Dieselben Pfade in
 `custom_components/warmwasser_zirkulation/icons.js` aktuell halten. Das Menü nutzt
 HAs native Iconfarben; die Tropfenform ist der sekundäre Pfad. Dieses kleine Modul

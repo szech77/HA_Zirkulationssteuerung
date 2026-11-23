@@ -38,6 +38,36 @@ Neue Versionen beim Auflösen mit `npm install --min-release-age=14` auswählen
 (npm 11); `npm ci` installiert danach die geprüfte Lockdatei. Der Dependabot-Cooldown
 beträgt ebenfalls 14 Tage.
 
+## Frontend-Struktur
+
+```text
+frontend/src/
+├── assets/
+│   ├── images/          # SVG-Logoquellen und Menü-Symbol
+│   └── styles/          # globale Panel-Styles
+├── components/          # wiederverwendbare Vue-Komponenten samt Tests
+├── composables/         # useHomeAssistantPanel: Verbindung, Polling, Befehle
+├── views/               # DashboardView: Seitenansicht samt Tests
+├── router/              # Vue-Router-Konfiguration und Tests
+├── stores/              # reaktiver Dashboard-Zustand pro App-Instanz
+├── types/               # gemeinsame TypeScript-Verträge
+├── test/                # synthetische Fixtures und übergreifende Tests
+├── App.vue              # Wurzelkomponente mit RouterView
+└── main.ts              # Vue-Mounting und HA-Custom-Element-Brücke
+```
+
+Vue Router **4.6.4** ist exakt gepinnt und verwendet `createMemoryHistory()`.
+Home Assistant behält die äußere Browser-URL; das Panel startet intern auf der
+Dashboard-Route. Jede gemountete Panel-Instanz erhält einen eigenen Router und
+Store. Der Store verwendet Vues `reactive`; `useHomeAssistantPanel` kapselt die
+von HA bereitgestellte authentifizierte Verbindung. Beim Entladen werden Polling
+und ausstehende UI-Aktualisierungen beendet beziehungsweise verworfen.
+
+Komponententests liegen neben ihren Komponenten, Router-/Store-/Composable-Tests
+neben den jeweiligen Modulen. Die bestehenden VS-Code-Tasks führen weiterhin
+alle Tests ab dem Ordner `frontend/` aus. Backend-Berechnungen, Persistenz und
+physische Pumpenbefehle bleiben in der Python-Integration.
+
 ## Änderungen entwickeln
 
 - Fachlogik gehört in `domain.py` und bleibt frei von Home-Assistant-Importen.

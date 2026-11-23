@@ -1,13 +1,13 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import PanelApp from './PanelApp.vue'
-import lightLogo from '../../branding/icon.svg'
-import darkLogo from '../../branding/dark_icon.svg'
-import { entry } from './test-data'
+import DashboardView from './DashboardView.vue'
+import lightLogo from '../assets/images/icon.svg'
+import darkLogo from '../assets/images/dark_icon.svg'
+import { entry } from '../test/fixtures'
 
 describe('panel states', () => {
   it('renders backend data and emits refresh/menu actions', async () => {
-    const wrapper=mount(PanelApp,{props:{state:{entries:[entry()],loading:false,error:null,updatedAt:null}}})
+    const wrapper=mount(DashboardView,{props:{state:{entries:[entry()],loading:false,error:null,updatedAt:null}}})
     expect(wrapper.text()).toContain('Test-Zirkulation')
     expect(wrapper.get('.brand-logo').attributes('src')).toBe(lightLogo)
     expect(wrapper.get('.brand-logo').attributes('alt')).toBe('')
@@ -23,13 +23,13 @@ describe('panel states', () => {
     expect(wrapper.emitted('refresh')).toHaveLength(1)
   })
   it('shows loading and does not render example metrics', () => {
-    const wrapper=mount(PanelApp,{props:{state:{entries:[],loading:true,error:null,updatedAt:null}}})
+    const wrapper=mount(DashboardView,{props:{state:{entries:[],loading:true,error:null,updatedAt:null}}})
     expect(wrapper.get('.brand-logo').exists()).toBe(true)
     expect(wrapper.get('[role=status]').text()).toContain('geladen')
     expect(wrapper.find('.system-card').exists()).toBe(false)
   })
   it('hides old readings on a connection error and permits retry', async () => {
-    const wrapper=mount(PanelApp,{props:{state:{entries:[entry()],loading:false,error:'Verbindung prüfen',updatedAt:null}}})
+    const wrapper=mount(DashboardView,{props:{state:{entries:[entry()],loading:false,error:'Verbindung prüfen',updatedAt:null}}})
     expect(wrapper.get('.brand-logo').exists()).toBe(true)
     expect(wrapper.get('[role=alert]').text()).toContain('Verbindung prüfen')
     expect(wrapper.find('.system-card').exists()).toBe(false)
@@ -38,7 +38,7 @@ describe('panel states', () => {
   })
   it('selects the dark logo using the Home Assistant theme', async () => {
     const state={entries:[entry()],loading:false,error:null,updatedAt:null,darkMode:false}
-    const wrapper=mount(PanelApp,{props:{state}})
+    const wrapper=mount(DashboardView,{props:{state}})
     expect(wrapper.get('.brand-logo').attributes('src')).toBe(lightLogo)
     await wrapper.setProps({state:{...state,darkMode:true}})
     expect(wrapper.get('.brand-logo').attributes('src')).toBe(darkLogo)

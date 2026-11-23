@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { WarmwasserPanel } from './main'
-import { entry } from './test-data'
+import { entry } from './test/fixtures'
 afterEach(()=>{ document.body.replaceChildren(); vi.useRealTimers() })
 describe('HA custom panel bridge', () => {
   it('registers a custom element, loads through HA auth and cleans up on disconnect', async () => {

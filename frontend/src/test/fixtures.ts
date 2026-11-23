@@ -1,4 +1,4 @@
-import type { EntryStatus, Heatmap } from './types'
+import type { EntryStatus, Heatmap } from '../types'
 export function heatmap(): Heatmap {
   return { rows: ['mon','tue','wed','thu','fri','sat','sun_holiday'].map(key => ({ key, cells: Array.from({length:48}, () => ({ observed_days:0, event_days:0, partial_days:0, ratio:null, sufficient:false, level:null })) })), calendar_enabled:true, retention_days:180, minimum_coverage_minutes:15, minimum_observed_days:3, observed_dates:0 }
 }

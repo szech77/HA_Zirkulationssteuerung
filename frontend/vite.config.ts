@@ -10,5 +10,5 @@ export default defineConfig({
     emptyOutDir: true, cssCodeSplit: false,
     lib: { entry: fileURLToPath(new URL('./src/main.ts', import.meta.url)), formats: ['es'], fileName: () => 'panel.js', cssFileName: 'panel' },
   },
-  test: { environment: 'jsdom', globals: true, coverage: { exclude: ['src/types.ts'] } },
+  test: { environment: 'jsdom', globals: true, coverage: { exclude: ['src/types/**'] } },
 })

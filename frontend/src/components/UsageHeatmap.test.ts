@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import UsageHeatmap from './UsageHeatmap.vue'
-import { heatmap } from './test-data'
+import { heatmap } from '../test/fixtures'
 
 describe('usage heatmap', () => {
   it('shows weekdays, Saturday and the combined Sunday/holiday row without inventing data', () => {

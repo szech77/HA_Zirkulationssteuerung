@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import WarmwasserDashboard from './WarmwasserDashboard.vue'
-import { entry } from './test-data'
+import { entry } from '../test/fixtures'
 
 describe('WarmwasserDashboard', () => {
   it('shows backend readings, monitoring and configured limits', () => {

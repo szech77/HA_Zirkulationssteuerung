@@ -1,8 +1,8 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import ControlSettings from './ControlSettings.vue'
-import { entry } from './test-data'
-import type { ControlSettings as Settings } from './types'
+import { entry } from '../test/fixtures'
+import type { ControlSettings as Settings } from '../types'
 
 describe('Dashboard schedule and operating mode configuration', () => {
   it('starts in monitoring with all seven day groups blocked', () => {
