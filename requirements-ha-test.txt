@@ -3,4 +3,4 @@ homeassistant==2026.11.2; python_version >= "3.14"
 tzdata==2026.6; sys_platform == "win32"
 
 # Test the minimum holidays version shared with HA 2026.11.2 (Workday).
-holidays==0.108
+holidays==0.109
