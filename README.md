@@ -30,7 +30,8 @@ Weitere Projektregeln und Informationen:
 Kurzablauf:
 
 1. Integration über UI konfigurieren: Vorlaufsensor, Puffersensor optional,
-   Pumpenschalter, Bundesland und Laufzeit setzen.
+   Pumpenschalter, Laufzeit und tägliches Startlimit setzen. Die Auswahl ist unter
+   **Konfigurieren** nachträglich änderbar; der Dialog ist auf Deutsch verfügbar.
 2. Mindestens mehrere Tage im Modus `Monitoring` beobachten. InfluxDB ist optional.
 3. Messintervall, Lücken, Pumpenartefakte und Stichprobengröße im Dashboard prüfen.
 4. Erst danach `Aktiv` und optional `Bedarfsautomatik` einschalten.

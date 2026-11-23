@@ -48,13 +48,15 @@ class CirculationCoordinator:
             DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS,
         )
         from .ha_adapters import HomeAssistantPumpGateway, HomeAssistantStateStore
+        from .configuration import entry_configuration
 
+        configuration = entry_configuration(entry)
         return cls(
             HomeAssistantPumpGateway(hass),
             HomeAssistantStateStore(hass, entry.entry_id),
-            entry.data[CONF_PUMP_ENTITY],
-            entry.data.get(CONF_RUNTIME_SECONDS, DEFAULT_RUNTIME_SECONDS),
-            entry.data.get(CONF_MAX_STARTS, DEFAULT_MAX_STARTS),
+            configuration[CONF_PUMP_ENTITY],
+            configuration.get(CONF_RUNTIME_SECONDS, DEFAULT_RUNTIME_SECONDS),
+            configuration.get(CONF_MAX_STARTS, DEFAULT_MAX_STARTS),
         )
 
     async def async_start(self) -> None:

@@ -7,6 +7,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Features
 
+- Native, durchsuchbare HA-Auswahl für Vorlauf- und optionalen Puffertemperaturfühler sowie den Pumpenschalter ergänzen. Deutsche Beschriftungen, Hilfetexte und Validierungsfehler für Einrichtung und nachträgliche Konfiguration bereitstellen. Laufzeit und tägliches Startlimit als begrenzte Ganzzahlen erfassen; geänderte Optionen automatisch neu laden und einen optionalen Puffersensor wieder entfernen können.
 - Initiale Home-Assistant-Custom-Integration für lernende Warmwasserzirkulation.
 - Vue-3-Oberfläche mit Vitest-Tests sowie CI- und Security-Prüfungen.
 - Automatische Beta-/Stable-Releaseplanung mit expliziter Maintainer-Freigabe.

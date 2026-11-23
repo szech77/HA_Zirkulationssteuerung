@@ -1,0 +1,63 @@
+{
+  "title": "Hot-water circulation",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hot-water circulation",
+        "description": "Select temperature sensors and the pump switch and set the runtime. New installations start in monitoring mode with automation disabled.",
+        "data": {
+          "flow_sensor": "Supply temperature sensor",
+          "buffer_sensor": "Buffer temperature sensor",
+          "pump_entity": "Circulation pump switch",
+          "runtime_seconds": "Pump runtime",
+          "max_starts": "Maximum automatic starts per day"
+        },
+        "data_description": {
+          "flow_sensor": "Select the temperature sensor on the supply/circulation pipe. Only sensors with the temperature device class are shown.",
+          "buffer_sensor": "Optional temperature sensor in the hot-water buffer. Leave empty if none is used.",
+          "pump_entity": "Select the existing switch that controls the circulation pump. Selecting it does not switch the pump.",
+          "runtime_seconds": "Runtime per start in seconds, from 1 to 3600. Default: 120 seconds.",
+          "max_starts": "Daily limit for automatic starts, from 1 to 100. Default: 6."
+        }
+      }
+    },
+    "error": {
+      "unknown_entity": "This entity does not exist. Select an existing entity.",
+      "invalid_temperature_sensor": "Select a sensor with the temperature device class.",
+      "invalid_pump": "Select a switch for the circulation pump.",
+      "same_sensor": "Select a different buffer sensor or leave this field empty.",
+      "invalid_runtime": "Enter a whole number from 1 to 3600 seconds.",
+      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure circulation",
+        "description": "Change selected entities and operating limits. Saving reloads the integration with the new settings. Clear the optional buffer sensor selection to remove it.",
+        "data": {
+          "flow_sensor": "Supply temperature sensor",
+          "buffer_sensor": "Buffer temperature sensor",
+          "pump_entity": "Circulation pump switch",
+          "runtime_seconds": "Pump runtime",
+          "max_starts": "Maximum automatic starts per day"
+        },
+        "data_description": {
+          "flow_sensor": "Select the temperature sensor on the supply/circulation pipe. Only sensors with the temperature device class are shown.",
+          "buffer_sensor": "Optional temperature sensor in the hot-water buffer. Leave empty if none is used.",
+          "pump_entity": "Select the existing switch that controls the circulation pump. Selecting it does not switch the pump.",
+          "runtime_seconds": "Runtime per start in seconds, from 1 to 3600. Default: 120 seconds.",
+          "max_starts": "Daily limit for automatic starts, from 1 to 100. Default: 6."
+        }
+      }
+    },
+    "error": {
+      "unknown_entity": "This entity does not exist. Select an existing entity.",
+      "invalid_temperature_sensor": "Select a sensor with the temperature device class.",
+      "invalid_pump": "Select a switch for the circulation pump.",
+      "same_sensor": "Select a different buffer sensor or leave this field empty.",
+      "invalid_runtime": "Enter a whole number from 1 to 3600 seconds.",
+      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day."
+    }
+  }
+}

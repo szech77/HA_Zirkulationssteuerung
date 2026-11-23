@@ -46,6 +46,17 @@ npm run build
 Neue Fachlogik braucht Tests für Normalfall, Grenzwerte und Fehlerfälle. Neue oder
 geänderte Vue-Komponenten brauchen Vitest- und Vue-Test-Utils-Tests.
 
+Die Konfigurationsvalidierung und die Vollständigkeit der deutschen/englischen
+Texte werden ohne HA-Laufzeit geprüft. `tests/test_config_flow.py` prüft zusätzlich
+native HA-Selektoren und den Optionsdialog, wenn Home Assistant in der verwendeten
+Testumgebung installiert ist; sonst wird dieses Modul ausdrücklich übersprungen.
+Für Änderungen an den HA-Dialogen auch diese Tests in einer passenden HA-Umgebung
+(mit Home Assistant 2026.11.2 geprüft) ausführen:
+
+```powershell
+python -m pytest -q tests/test_config_flow.py
+```
+
 ## Pull Requests
 
 - Titel und Beschreibung sollen die fachliche Wirkung und mögliche Sicherheitsfolgen

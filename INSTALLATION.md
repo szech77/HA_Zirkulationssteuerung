@@ -48,11 +48,27 @@ voraus. Servicefehler werden an den Coordinator weitergegeben.
 
 ## 3. Konfiguration
 
-Im Config Flow mindestens folgende Werte angeben:
+Der Einrichtungsdialog verwendet durchsuchbare Home-Assistant-Auswahllisten
+mit Entitätsnamen. Bei deutscher HA-Sprache sind Beschriftungen, Hilfetexte und
+Fehlermeldungen auf Deutsch; Englisch ist als Rückfall vorhanden.
 
-- Vorlaufsensor: aktueller Entity-ID des Leitungs-/Vorlauffühlers
-- Pumpenschalter: aktueller Entity-ID des Zirkulationspumpenschalters
-- Laufzeit je Start in Sekunden
+- **Vorlauftemperaturfühler:** vorhandenen Temperatursensor an der Leitung auswählen.
+- **Puffertemperaturfühler:** optional einen weiteren Temperatursensor auswählen.
+- **Schalter der Zirkulationspumpe:** vorhandene `switch`-Entität auswählen.
+- **Pumpenlaufzeit:** ganze Sekunden von 1 bis 3600; Standard 120.
+- **Maximale automatische Starts pro Tag:** ganze Zahl von 1 bis 100; Standard 6.
+
+Die Sensorauswahl zeigt nur `sensor`-Entitäten mit der Geräteklasse `temperature`.
+Fehlt ein Temperaturfühler in der Liste, seine Geräteklasse in der Quellintegration
+prüfen. Unbekannte Entitäten, andere Sensorarten und dieselbe Entität als Vorlauf-
+und Puffersensor werden beim Speichern abgelehnt. Vorübergehend nicht verfügbare,
+aber weiterhin in HA vorhandene Entitäten können ausgewählt bleiben.
+
+Spätere Änderungen sind unter **Einstellungen → Geräte & Dienste →
+Warmwasser-Zirkulation → Konfigurieren** möglich. Die vorhandene Auswahl ist
+vorbelegt. Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
+Nach dem Speichern lädt HA die Integration mit den neuen Optionen neu.
+Die Konfiguration selbst führt keine Schaltbefehle aus.
 
 Optional beziehungsweise für die spätere Planung relevant:
 
