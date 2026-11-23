@@ -1,9 +1,6 @@
 # Changelog
 
-Alle bemerkenswerten Änderungen an diesem Projekt werden hier dokumentiert.
-Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
-
-## New Version
+## 0.2.0b45086964830 - 2026-11-23
 
 ### Features
 
