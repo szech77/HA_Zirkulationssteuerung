@@ -26,6 +26,8 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- `@vitejs/plugin-vue` für Vue-SFC-Kompilierung und Vite-Build von 5.2.4 auf 6.0.10 aktualisieren. Die höhere Node-Anforderung ist mit Node 22.22.2 bereits erfüllt; Vite 6 und die eingesetzte Vue-Version bleiben unterstützt. Keine zusätzliche Laufzeitabhängigkeit einführen.
+- Den isolierten Chrome-Start für Browserprüfungen und Logo-Export auf 30 Sekunden begrenzen, Startabbrüche mit Exitcode und begrenzter Fehlerausgabe melden und ausschließlich den Start einmal mit einem neuen Profil wiederholen. Eigene Prozesse und temporäre Profile bei Fehlern bereinigen; UI- und Sicherheitsprüfungen unverändert erhalten.
 - Vor dem Dependency Review das Repository mit `actions/checkout` 5.1.0 (vollständiger Commit-Pin, ohne gespeicherte Zugangsdaten) auschecken, damit die lokale Prüfkonfiguration verfügbar ist. Den unbeabsichtigten Umbruch der Titelleiste bei 641–760 px mit breiteren Linux-Systemschriften durch kompaktere Aktionsbuttons und Abstände verhindern; die strengen Browserprüfungen erhalten.
 - Logo und Oberfläche farblich an EOS Energiezentrale angleichen: Türkis/Gold im Tropfenlogo sowie identische Hell-/Dunkelwerte für Flächen, Texte, Rahmen, Aktionen und Statusanzeigen. Die Heatmap aus den EOS-Akzentfarben ableiten und transparente HA-Brand-Dateien neu exportieren.
 - Den Menübutton mit drei horizontalen Strichen aus der Panel-Titelleiste entfernen. Das native HA-Seitenmenü weiterhin über die Wischgeste vom linken Rand öffnen.

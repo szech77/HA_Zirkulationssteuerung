@@ -66,6 +66,10 @@ jobs:
       - name: Build Vue frontend
         working-directory: frontend
         run: npm run build
+      - name: Test isolated browser startup
+        if: matrix.python-version == '3.14'
+        working-directory: frontend
+        run: npm run test:tools
       - name: Verify native panel scrolling and sidebar swipe in Chrome
         if: matrix.python-version == '3.14'
         working-directory: frontend

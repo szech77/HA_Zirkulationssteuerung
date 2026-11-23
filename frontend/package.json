@@ -8,14 +8,15 @@
     "audit": "npm audit --audit-level=high",
     "build": "vite build",
     "test:browser": "node ../tools/test_panel_scroll.mjs",
-    "brand:render": "node ../tools/render_brand.mjs"
+    "brand:render": "node ../tools/render_brand.mjs",
+    "test:tools": "node --test ../tools/chrome.test.mjs"
   },
   "dependencies": {
     "vue": "^3.5.0",
     "vue-router": "4.6.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.0",
+    "@vitejs/plugin-vue": "6.0.10",
     "@vitest/coverage-v8": "^5.1.1",
     "@vue/test-utils": "^2.6.0",
     "jsdom": "31.0.0",

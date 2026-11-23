@@ -104,3 +104,13 @@ fordern deshalb `holidays>=0.108`, ohne HAs Paketversion exakt festzuschreiben.
 in HA 2026.11.2. Bei Updates der HA-Testversion auch diesen Test-Pin prüfen.
 Die Metadatenprüfungen testen die Manifest-Reihenfolge, übereinstimmende
 Projekt-/Manifest-Anforderungen und die Kompatibilität mit dem HA-Teststand.
+
+## Isolierter Browserstart
+
+Die Browserregression nutzt `tools/chrome.mjs` auch für den Logo-Export. Der
+DevTools-Start darf pro Versuch maximal 30 Sekunden benötigen. Nur ein fehlgeschlagener
+Start wird einmal mit einem neuen Profil wiederholt; die eigentlichen UI-Prüfungen
+werden nicht wiederholt oder übersprungen. Ein früher Prozessabbruch und Fehler
+beim Start werden sofort mit Ursache gemeldet. Die letzten 4096 Zeichen der Chrome-
+Fehlerausgabe bleiben für die Diagnose erhalten. Die Sandbox bleibt aktiviert.
+Die CI prüft diesen Ablauf mit synthetischen Prozessen über `npm run test:tools`.
