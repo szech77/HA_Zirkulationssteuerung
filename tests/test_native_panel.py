@@ -54,6 +54,9 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         assert frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
         panel = self.hass.data[frontend.DATA_PANELS]['warmwasser-zirkulation']
         assert panel.require_admin is True
+        # HA gives config panels precedence over the native options dialog.
+        # Keeping this unset lets the integration gear open ConfigFlow options.
+        assert panel.config_panel_domain is None
         assert panel.config['_panel_custom']['name'] == 'warmwasser-panel'
         assert panel.config['_panel_custom']['module_url'].endswith('panel.js?v=verified-build')
         self.hass.http.async_register_static_paths.assert_awaited_once()

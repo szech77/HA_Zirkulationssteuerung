@@ -16,6 +16,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Die Navigationsschleife zwischen Dashboard und Integrationsseite beheben: Das Seitenleistenpanel nicht als HA-Konfigurationspanel registrieren, damit das Zahnrad den nativen Optionsdialog öffnet. Den Konfigurationslink mit einem Hinweis auf das Zahnrad am gewünschten Eintrag versehen.
 - Das gebaute Panel-Bundle und Stylesheet im Integrationsordner erzeugen und in den Release-Snapshot aufnehmen; Veröffentlichungen ohne gebaute Assets ablehnen. Panel und Beobachtungsabonnements bei Entladen oder fehlgeschlagener Einrichtung aufräumen.
 - Den Integrationsstart mit echten Home-Assistant-Adaptern statt des `hass`-Platzhalters für Speicher und Pumpensteuerung korrigieren. Laufzeitdaten pro Konfigurationseintrag asynchron speichern und zeitzonenbehaftete Pumpenlaufzeiten wiederherstellen. Ungültige gespeicherte Zustände verhindern den Start; unbekannte Pumpenzustände verhindern Einschaltbefehle. Das konfigurierte Tageslimit übernehmen und Servicefehler ohne rohe Ausnahmedetails protokollieren.
 

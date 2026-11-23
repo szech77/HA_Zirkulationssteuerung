@@ -39,10 +39,11 @@ async def async_register_frontend(hass):
             websocket_api.async_register_command(hass, websocket_status)
             state['resources_registered'] = True
         if not state.get('panel_registered'):
+            # Keep HA's configure gear connected to the native options dialog.
             await panel_custom.async_register_panel(hass, frontend_url_path=PANEL_URL,
                 webcomponent_name='warmwasser-panel', sidebar_title='Warmwasser-Zirkulation',
                 sidebar_icon='mdi:water-pump', module_url=f'{STATIC_URL}/panel.js?v={version}',
-                embed_iframe=False, require_admin=True, config_panel_domain=DOMAIN)
+                embed_iframe=False, require_admin=True)
             state['panel_registered'] = True
 
 

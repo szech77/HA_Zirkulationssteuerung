@@ -74,7 +74,9 @@ aber weiterhin in HA vorhandene Entitäten können ausgewählt bleiben.
 
 Spätere Änderungen sind unter **Einstellungen → Geräte & Dienste →
 Warmwasser-Zirkulation → Konfigurieren** möglich. Die vorhandene Auswahl ist
-vorbelegt. Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
+vorbelegt. Der Link **Konfiguration** im Dashboard öffnet die Integrationsseite;
+das Zahnrad am gewünschten Eintrag öffnet den nativen Einstellungsdialog.
+Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
 Nach dem Speichern lädt HA die Integration mit den neuen Optionen neu.
 Die Konfiguration selbst führt keine Schaltbefehle aus.
 

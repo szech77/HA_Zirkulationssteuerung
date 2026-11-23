@@ -7,6 +7,10 @@ describe('panel states', () => {
   it('renders backend data and emits refresh/menu actions', async () => {
     const wrapper=mount(PanelApp,{props:{state:{entries:[entry()],loading:false,error:null,updatedAt:null}}})
     expect(wrapper.text()).toContain('Test-Zirkulation')
+    const configuration=wrapper.get('a')
+    expect(configuration.text()).toBe('Konfiguration')
+    expect(configuration.attributes('href')).toBe('/config/integrations/integration/warmwasser_zirkulation')
+    expect(configuration.attributes('title')).toContain('Zahnrad')
     await wrapper.get('.menu-button').trigger('click')
     await wrapper.findAll('button').find(button=>button.text()==='Aktualisieren')!.trigger('click')
     expect(wrapper.emitted('menu')).toHaveLength(1)
