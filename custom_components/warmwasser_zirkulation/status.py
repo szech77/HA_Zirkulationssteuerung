@@ -45,6 +45,9 @@ def entry_status(hass, entry, coordinator, observer=None, now=None, *, include_h
         reason = 'pump_unreachable'
     level = 'error' if reason in ('pump_unreachable', 'control_failed') else (
         'warning' if reason in ('fresh_flow_value_missing', 'pump_state_unknown', 'daily_limit_reached', 'calendar_unavailable') else 'normal')
+    heatmap = observer.snapshot() if observer is not None and include_heatmap else None
+    next_start = (heatmap.get('planning',{}).get('next_start') if heatmap is not None else
+                  observer.next_prediction.at.isoformat() if getattr(observer,'next_prediction',None) else None)
     return {'entry_id': entry.entry_id, 'title': entry.title,
             'reason': reason, 'status_level': level, 'flow': flow,
             'buffer': sensor_status(hass, configuration.get('buffer_sensor'), now),
@@ -58,10 +61,10 @@ def entry_status(hass, entry, coordinator, observer=None, now=None, *, include_h
             'daily_starts': coordinator.runtime.daily_starts, 'max_starts': coordinator.max_starts,
             'remaining_starts': max(0, coordinator.max_starts - coordinator.runtime.daily_starts),
             'runtime_seconds': coordinator.runtime_seconds,
-            'next_start': observer.next_prediction.at.isoformat() if getattr(observer,'next_prediction',None) else None,
+            'next_start': next_start,
             'history_import': dict(observer.import_info) if observer is not None else None,
             'country': configuration.get('country'), 'subdivision': configuration.get('subdivision'),
-            'heatmap': observer.snapshot() if observer is not None and include_heatmap else None}
+            'heatmap': heatmap}
 
 
 def dashboard_status(hass):

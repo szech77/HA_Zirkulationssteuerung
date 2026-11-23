@@ -42,4 +42,45 @@ describe('usage heatmap', () => {
     wrapper.unmount()
   })
 
+  it('marks permissions and planned warming in monitoring without replacing usage colors', async () => {
+    const data=heatmap(); data.observed_dates=3
+    data.planning={mode:'monitoring',vacation_active:false,horizon_days:7,next_start:'2026-01-26T07:03:00Z'}
+    data.rows[0].cells[14]={observed_days:3,event_days:3,partial_days:3,ratio:1,sufficient:true,level:4,
+      allowed_windows:[{start:'07:00',end:'07:30',offset:0,width:100}],
+      planned_runs:[{date:'2026-01-26',start:'07:03:00',end:'07:05:00',offset:10,width:6.67}]}
+    const wrapper=mount(UsageHeatmap,{props:{data}})
+    const cell=wrapper.findAll('tbody tr')[0].findAll('button')[14]
+    expect(cell.classes()).toContain('level-4')
+    expect(cell.get('.allowed-window').attributes('style')).toContain('width: 100%')
+    expect(cell.get('.planned-run').attributes('style')).toContain('left: 10%')
+    expect(wrapper.text()).toContain('Planungsvorschau im Monitoring')
+    expect(wrapper.text()).toContain('automatische Schaltbefehle sind ausgeschaltet')
+    expect(wrapper.findAll('tbody tr')).toHaveLength(7)
+    await cell.trigger('click')
+    expect(wrapper.get('.cell-detail').text()).toContain('Freigabe 07:00–07:30')
+    expect(wrapper.get('.cell-detail').text()).toContain('Geplantes Vorwärmen 2026-01-26 07:03:00–07:05:00')
+    await wrapper.setProps({data:{...data,planning:{...data.planning,mode:'active'}}})
+    expect(wrapper.findAll('.planned-run')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Ausführung bei gültigen Live-Werten')
+  })
+  it('shows permission bars even without observations or active pump control', () => {
+    const data=heatmap();data.planning={mode:'monitoring',vacation_active:true,horizon_days:7,next_start:null}
+    data.rows[6].cells[24].allowed_windows=[{start:'12:00',end:'12:30',offset:0,width:100}]
+    const wrapper=mount(UsageHeatmap,{props:{data}})
+    const cell=wrapper.findAll('tbody tr')[6].findAll('button')[24]
+    expect(cell.classes()).toContain('no-data')
+    expect(cell.find('.allowed-window').exists()).toBe(true)
+    expect(cell.attributes('aria-label')).toContain('Freigabe 12:00–12:30')
+    expect(wrapper.text()).toContain('Urlaubsprofil bestimmt die dargestellten Freigaben')
+    expect(wrapper.findAll('.planned-run')).toHaveLength(0)
+  })
+  it('refreshes selected planning details after settings or forecast change', async () => {
+    const data=heatmap();data.rows[0].cells[14].allowed_windows=[{start:'07:00',end:'07:30',offset:0,width:100}]
+    const wrapper=mount(UsageHeatmap,{props:{data}})
+    await wrapper.findAll('tbody tr')[0].findAll('button')[14].trigger('click')
+    expect(wrapper.get('.cell-detail').text()).toContain('Freigabe')
+    await wrapper.setProps({data:heatmap()})
+    expect(wrapper.get('.cell-detail').text()).not.toContain('Freigabe')
+  })
+
 })

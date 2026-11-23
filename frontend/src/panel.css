@@ -5,3 +5,5 @@
 .brand-heading{display:flex;align-items:center;gap:14px}.brand-logo{display:block;width:52px;height:52px;flex:0 0 52px;object-fit:contain}.brand-heading>div{min-width:0}@media(max-width:650px){.brand-heading{gap:10px}.brand-logo{width:40px;height:40px;flex-basis:40px}}
 
 .history-status{margin:24px 0;padding:16px;border:1px solid var(--divider-color,#d4dde5);border-radius:12px}.history-status h3{margin:0;font-size:18px}.history-status p{font-size:13px}
+
+.heatmap .heat-cell{position:relative;overflow:hidden}.heatmap .allowed-window,.heatmap .planned-run{position:absolute;display:block;pointer-events:none;border-radius:2px;min-width:3px}.heatmap .allowed-window{bottom:1px;height:3px;background:#176dc4;box-shadow:0 0 0 1px #ffffff80}.heatmap .planned-run{top:2px;height:6px;background:#ff951f;box-shadow:0 0 0 1px #522c00}.legend .legend-allowed{height:4px;background:#176dc4}.legend .legend-planned{height:7px;background:#ff951f;border:1px solid #522c00}.planning-note{padding:10px 12px;background:var(--secondary-background-color,#f5f8fa);border-radius:8px}.heatmap th:first-child{width:108px;min-width:108px;white-space:nowrap}

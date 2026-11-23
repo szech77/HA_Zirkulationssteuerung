@@ -298,6 +298,29 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         assert await future.async_load()==original
         assert self.service_calls==[]
 
+    async def test_heatmap_plan_is_visible_in_monitoring_without_enabling_or_switching_pump(self):
+        from copy import deepcopy
+        at=datetime(2026,1,26,7,tzinfo=timezone.utc)
+        await async_setup_entry(self.hass,self.entry)
+        observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+        control=observer.coordinator
+        values=control.settings();values['schedule']['mon']=[{'start':'06:00','end':'09:00'}]
+        await control.async_configure(values,0)
+        for week in (3,2,1):
+            base=at-timedelta(weeks=week)
+            for n in (0,5,10):observer.history.observe(base+timedelta(minutes=n),base+timedelta(minutes=n+5),timezone.utc)
+            observer.history.event(base+timedelta(minutes=5),timezone.utc)
+        before=deepcopy(control.runtime.__dict__)
+        with patch('homeassistant.util.dt.utcnow',return_value=at):
+            snapshot=observer.snapshot()
+        assert snapshot['planning']['mode']=='monitoring'
+        assert snapshot['rows'][0]['cells'][14]['allowed_windows']
+        assert snapshot['rows'][0]['cells'][14]['planned_runs']
+        assert snapshot['planning']['next_start']==(at+timedelta(minutes=3)).isoformat()
+        assert control.runtime.__dict__==before
+        assert not control.runtime.enabled and not control.runtime.demand_automation
+        assert self.service_calls==[]
+
     async def test_panel_is_shared_and_not_removed_until_last_entry_unloads(self):
         await async_setup_entry(self.hass, self.entry)
         another = SimpleNamespace(entry_id='synthetic-panel-two', title='Second synthetic circulation',

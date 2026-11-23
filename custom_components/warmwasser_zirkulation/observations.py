@@ -137,11 +137,13 @@ class ObservationMonitor:
         local_now = now.astimezone(zone)
         self.control_pending = True
         try:
-            key = (int(now.timestamp())//30,self.coordinator.runtime.settings_revision,self.coordinator.runtime.last_prediction_id)
+            key = (int(now.timestamp())//30,self.coordinator.runtime.settings_revision,
+                   self.coordinator.runtime.last_prediction_id,self.coordinator.runtime.last_start_at,
+                   self.coordinator.runtime.daily_starts,self.coordinator.runtime.starts_date)
             if key != self.prediction_key:
                 self.next_prediction = self.history.predict(local_now,self.coordinator.settings(),
                     self.coordinator.runtime_seconds,self.holidays,bool(self.configuration.get('country')),
-                    exclude_identity=self.coordinator.runtime.last_prediction_id)
+                    **self._planning_limits())
                 self.prediction_key = key
             if not (self.coordinator.runtime.enabled or self.coordinator.runtime.pump_until):
                 return
@@ -286,10 +288,17 @@ class ObservationMonitor:
             _LOGGER.error('Recorder history import failed; live monitoring continues',
                 extra={'reason':'history_import_failed','error_type':type(error).__name__})
 
+    def _planning_limits(self):
+        runtime=self.coordinator.runtime
+        return {'exclude_identity':runtime.last_prediction_id,'max_starts':self.coordinator.max_starts,
+                'used_starts':runtime.daily_starts,'starts_date':runtime.starts_date,
+                'last_start_at':runtime.last_start_at}
+
     def snapshot(self):
         zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
-        return self.history.heatmap(dt_util.utcnow().astimezone(zone).date(), self.holidays,
-                                    bool(self.configuration.get('country')))
+        return self.history.planning_snapshot(dt_util.utcnow().astimezone(zone),self.coordinator.settings(),
+            self.coordinator.runtime_seconds,self.holidays,bool(self.configuration.get('country')),
+            **self._planning_limits())
 
     async def async_stop(self):
         self.closed = True

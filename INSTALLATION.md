@@ -337,3 +337,18 @@ freigegeben. Beide Speicherdateien verwenden Schema-Version 2, zusätzlich zur
 HA-Store-Version 2. Ältere Version-1-Daten ohne interne Versionsangabe werden
 validiert und automatisch übertragen. Unbekannte neuere Versionen und beschädigte
 Daten werden abgelehnt und nicht überschrieben. Wiederholtes Laden migriert nicht erneut.
+
+
+### Zeitplanung in der Heatmap
+
+Die Verbrauchsfarben bleiben sichtbar. **Blaue Striche am unteren Zellrand** markieren
+konfigurierte Freigabezeiten, **orange Markierungen am oberen Zellrand** die gelernten
+Vorwärmläufe für die nächsten sieben Tage. Auch Teilzeiträume innerhalb einer Zelle
+werden dargestellt. Beim Anklicken oder per Tastatur zeigen die Zelldetails die
+Uhrzeiten und bei Vorwärmläufen das Datum in der Home-Assistant-Zeitzone.
+
+Die Vorschau bleibt in **Nur Monitoring** sichtbar. Sie aktiviert keine Steuerung
+und gibt keine Schaltbefehle aus. Die Vorhersage berücksichtigt Freigaben, Urlaubsprofil,
+Tageslimit, bereits verbrauchte Starts und den Startabstand. Die tatsächliche Ausführung
+benötigt zusätzlich aktive Steuerung und gültige Live-Messwerte. Bei fehlender Messbasis
+werden nur Freigabezeiten markiert. Sonntage und Feiertage bleiben eine gemeinsame Zeile.

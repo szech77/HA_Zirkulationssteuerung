@@ -108,8 +108,9 @@ class UsageHistory:
         return all(any(cell['sufficient'] for cell in row['cells']) for row in
                    self.heatmap(today, holidays, calendar_enabled)['rows'])
 
-    def predict(self, now, settings, runtime_seconds, holidays=(), calendar_enabled=False, exclude_identity=None):
-        """Suggest a near-future start from observed days, never from missing data."""
+    def planned_starts(self, now, settings, runtime_seconds, holidays=(), calendar_enabled=False,
+                       exclude_identity=None, *, max_starts=None, used_starts=0, starts_date=None, last_start_at=None):
+        """Forecast learned starts from observed days, never from missing data."""
         holidays = holidays if calendar_enabled else ()
         buckets = {key:[[] for _ in range(48)] for key in ROWS}
         for key, day in self.days.items():
@@ -141,4 +142,65 @@ class UsageHistory:
                     continue
                 if demand.isoformat() != exclude_identity and permitted_until(settings,start,runtime_seconds,holidays):
                     candidates.append(LearnedStart(start,demand,ratio,count))
-        return min(candidates,key=lambda value:value.at.timestamp(),default=None)
+        # Forecast execution limits too; the same plan feeds both control and display.
+        counts = {now.date():used_starts} if starts_date==now.date().isoformat() else {}
+        previous = datetime.fromisoformat(last_start_at).timestamp() if last_start_at else None
+        planned = []
+        for candidate in sorted(candidates,key=lambda value:value.at.timestamp()):
+            day=candidate.at.date()
+            if max_starts is not None and counts.get(day,0)>=max_starts:
+                continue
+            if previous is not None and candidate.at.timestamp()-previous<1200:
+                continue
+            planned.append(candidate)
+            counts[day]=counts.get(day,0)+1
+            previous=candidate.at.timestamp()
+        return planned
+
+    def predict(self, now, settings, runtime_seconds, holidays=(), calendar_enabled=False, exclude_identity=None, **limits):
+        return next(iter(self.planned_starts(now,settings,runtime_seconds,holidays,calendar_enabled,
+                                            exclude_identity,**limits)),None)
+
+    def planning_snapshot(self, now, settings, runtime_seconds, holidays=(), calendar_enabled=False, **limits):
+        """Read-only overlay for the same seven groups; monitoring still has a full plan."""
+        data=self.heatmap(now.date(),holidays,calendar_enabled)
+        rows={row['key']:row['cells'] for row in data['rows']}
+        for key,cells in rows.items():
+            windows=settings['vacation_windows'] if settings['vacation_active'] else settings['schedule'][key]
+            for slot,cell in enumerate(cells):
+                cell['allowed_windows']=[]; cell['planned_runs']=[]
+                for window in windows:
+                    def minute(value):
+                        hour,minutes=map(int,value.split(':')); return hour*60+minutes
+                    start,end=max(slot*30,minute(window['start'])),min((slot+1)*30,minute(window['end']))
+                    if start<end:
+                        cell['allowed_windows'].append({'start':f'{start//60:02d}:{start%60:02d}',
+                            'end':f'{end//60:02d}:{end%60:02d}',
+                            'offset':(start-slot*30)/30*100,'width':(end-start)/30*100})
+        plans=self.planned_starts(now,settings,runtime_seconds,holidays,calendar_enabled,**limits)
+        for plan in plans:
+            # Split real elapsed time into local minute segments, including DST jumps.
+            segments={}
+            cursor=plan.at.timestamp(); finish=plan.demand_at.timestamp()
+            while cursor<finish:
+                local=datetime.fromtimestamp(cursor,now.tzinfo)
+                boundary=min(finish,(int(cursor)//60+1)*60)
+                row=day_group(local.date(),holidays if calendar_enabled else ())
+                slot=local.hour*2+local.minute//30
+                offset=(local.minute%30)*60+local.second+local.microsecond/1_000_000
+                segments.setdefault((row,slot),[]).append((offset,offset+boundary-cursor))
+                cursor=boundary
+            for (row,slot),parts in segments.items():
+                merged=[]
+                for start,end in sorted(parts):
+                    if merged and start<=merged[-1][1]:
+                        merged[-1]=(merged[-1][0],max(end,merged[-1][1]))
+                    else:
+                        merged.append((start,end))
+                for start,end in merged:
+                    rows[row][slot]['planned_runs'].append({'date':plan.at.date().isoformat(),
+                        'start':plan.at.strftime('%H:%M:%S'),'end':plan.demand_at.strftime('%H:%M:%S'),
+                        'offset':start/1800*100,'width':(end-start)/1800*100})
+        data['planning']={'mode':settings['mode'],'vacation_active':settings['vacation_active'],
+                          'horizon_days':7,'next_start':plans[0].at.isoformat() if plans else None}
+        return data
