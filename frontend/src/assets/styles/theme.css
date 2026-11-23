@@ -29,13 +29,6 @@
   --orange: var(--heat);
   --orange-soft: var(--warn-bg);
   --header: var(--surface);
-  /* The circulation-specific scale is derived from the EOS accent. */
-  --heat0: var(--surface2);
-  --heat1: color-mix(in srgb, var(--accent) 20%, var(--surface2));
-  --heat2: color-mix(in srgb, var(--accent) 40%, var(--surface2));
-  --heat3: color-mix(in srgb, var(--accent) 60%, var(--surface2));
-  --heat4: color-mix(in srgb, var(--accent) 80%, var(--surface2));
-  --heat5: var(--accent);
 }
 
 .app-shell[data-theme=dark] {

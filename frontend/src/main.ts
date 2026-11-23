@@ -6,6 +6,7 @@ import { createPanelRouter } from './router'
 import type { ControlSettings, HomeAssistant } from './types'
 import './assets/styles/theme.css'
 import './assets/styles/panel.css'
+import './assets/styles/identity.css'
 
 // The custom-element bridge only mounts Vue and forwards the HA connection.
 export class WarmwasserPanel extends HTMLElement {

@@ -7,6 +7,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Features
 
+- Den EOS-Gestaltungsstil auf Titelleiste, Logo-Position, Symbolnavigation, Schriften, Abstände, Karten und Formulare übertragen; die Navigation auf Handys dauerhaft unter dem Scrollbereich anzeigen. Entnahmequoten in der Heatmap stufenlos anhand der berechneten Quote einfärben, die Legende als Verlauf darstellen und Freigabezeiten separat in Grün markieren.
 - Das native HA-Seitenmenü durch Wischen vom linken Panelrand nach rechts öffnen. Den zusätzlichen Ansichtsnamen samt Trennstrich aus der Titelleiste entfernen; aktive Navigation und zugängliche Seitenüberschriften erhalten.
 - Den freigegebenen Oberflächenentwurf als echte Vue-App umsetzen: feste Titelleiste, getrennte Übersicht und Einstellungsseite, kompakte echte Messwerte, Heatmap mit ein-/ausblendbaren Freigaben und Vorwärmläufen, reale Planung und Historienimport. Neutrale Anthrazit-/Grautöne im Darkmode verwenden; Entwürfe beim Routenwechsel und bei Verbindungsproblemen erhalten. Sensoren und Region über HAs native Auswahl erreichbar halten.
 - Pumpenlaufzeit frei in Minuten bis 1.440 Minuten (24 Stunden), einschließlich Dezimalwerten, sowie Tageslimit direkt im Panel speichern. Bestätigte laufende Endzeiten erhalten und längere Starts weiterhin vollständig an Freigabezeiten binden. Steuerungsdaten und native HA-Optionen auf dieselben wirksamen Grenzen abstimmen; Schema-/HA-Store-Version 3 mit automatischer Migration aus Version 1 und 2 ergänzen.

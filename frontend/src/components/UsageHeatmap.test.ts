@@ -4,6 +4,21 @@ import UsageHeatmap from './UsageHeatmap.vue'
 import { heatmap } from '../test/fixtures'
 
 describe('usage heatmap', () => {
+  it('uses the exact measured fraction continuously, including zero, nearby values and full usage', () => {
+    const data=heatmap()
+    for(const [slot,ratio] of [0,0.41,0.42,1].entries()) data.rows[0].cells[slot]={observed_days:100,event_days:ratio*100,partial_days:100,ratio,sufficient:true,level:2}
+    const wrapper=mount(UsageHeatmap,{props:{data}})
+    const cells=wrapper.findAll('tbody tr')[0].findAll('button')
+    for(const [slot,ratio] of [0,0.41,0.42,1].entries()) {
+      expect(cells[slot].attributes('style')).toContain('--usage: '+ratio)
+      expect(cells[slot].classes()).not.toContain('no-data')
+      expect(cells[slot].classes().some(value=>value.startsWith('level-'))).toBe(false)
+    }
+    expect(cells[4].classes()).toContain('no-data')
+    expect(cells[4].attributes('style')).toBeUndefined()
+    expect(wrapper.get('.usage-scale').attributes('aria-label')).toContain('stufenlos von 0 bis 100 Prozent')
+    expect(wrapper.get('.usage-gradient').exists()).toBe(true)
+  })
   it('can hide each planning overlay without changing measured colors', async () => {
     const data=heatmap();data.planning={mode:'monitoring',vacation_active:false,horizon_days:7,next_start:null}
     data.rows[0].cells[12].allowed_windows=[{start:'06:00',end:'06:30',offset:0,width:100}]
@@ -64,7 +79,7 @@ describe('usage heatmap', () => {
       planned_runs:[{date:'2026-01-26',start:'07:03:00',end:'07:05:00',offset:10,width:6.67}]}
     const wrapper=mount(UsageHeatmap,{props:{data}})
     const cell=wrapper.findAll('tbody tr')[0].findAll('button')[14]
-    expect(cell.classes()).toContain('level-4')
+    expect(cell.attributes('style')).toContain('--usage: 1')
     expect(cell.get('.allowed-window').attributes('style')).toContain('width: 100%')
     expect(cell.get('.planned-run').attributes('style')).toContain('left: 10%')
     expect(wrapper.text()).toContain('Planungsvorschau im Monitoring')

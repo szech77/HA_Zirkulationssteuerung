@@ -10,7 +10,8 @@ Die GitHub-Actions-Pipeline prüft Pull Requests gegen `main` sowie Pushes auf
 - Vue/Node: reproduzierbare Installation mit `npm ci`, Vitest, Coverage, `npm audit`
   und Vite-Build
 - Chrome-Browserregression im Python-3.14-Testjob: natives Mausrad-/Touchpad-Scrollen,
-  feste Titelleiste, Heatmap-Achsen, Routenwechsel und Touch-Geste für das HA-Menü
+  feste Titelleiste mit EOS-Maßen, mobile Navigation, stufenlose Heatmap mit grünen
+  Freigaben, Scrollachsen, Routenwechsel und Touch-Geste für das HA-Menü
 - Python Security: Bandit und pip-audit inklusive SARIF-Upload zu Code Scanning
 - GitHub Advanced Security: CodeQL für Python und TypeScript/JavaScript sowie
   Dependency Review für Änderungen an Python-, Node- und GitHub-Action-Abhängigkeiten

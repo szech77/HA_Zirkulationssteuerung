@@ -196,7 +196,10 @@ Der Test nutzt ein bereits installiertes Chrome/Chromium (optional über
 `CHROME_BIN`) mit isoliertem temporärem Profil und synthetischen Daten. Er prüft
 echte Mausrad-Eingaben, gebrochene Touchpad-Deltas, die schmale Ansicht, beide
 Scrollachsen der Heatmap, Routenwechsel, die feste Titelleiste und echte Touch-Gesten
-für das native HA-Menü. Die passive Wischerkennung am linken Rand sendet
+für das native HA-Menü, die EOS-Geometrie der Titelleiste und die mobile
+Navigation unterhalb des Scrollbereichs. Die Heatmap-Prüfung unterscheidet
+benachbarte Quoten und grüne Freigaben auch bei 100 % Entnahme.
+Die passive Wischerkennung am linken Rand sendet
 `hass-toggle-menu` mit `open: true`; vertikale Bewegungen, mehrere Finger und
 Bedienelemente lösen das Menü nicht aus. Die CI führt
 ihn im Python-3.14-Testjob mit dem Browser des Ubuntu-Runner-Images aus.

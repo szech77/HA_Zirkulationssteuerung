@@ -30,6 +30,17 @@ const fixture = {
     cells: Array.from({length:48}, () => ({ observed_days:0,event_days:0,partial_days:0,ratio:null,sufficient:false,level:null })) })),
     calendar_enabled:false,retention_days:180,minimum_coverage_minutes:15,minimum_observed_days:3,observed_dates:0 },
 }
+// Synthetically observed fractions and planning overlays for visual regression.
+fixture.heatmap.observed_dates=100
+fixture.heatmap.planning={mode:'monitoring',vacation_active:false,horizon_days:7,next_start:null}
+for(const [rowIndex,row] of fixture.heatmap.rows.entries()) for(const [slot,cell] of row.cells.entries()) {
+  if(slot<8 || slot>42)continue
+  const ratio=((slot*7+rowIndex*3)%101)/100
+  Object.assign(cell,{observed_days:100,event_days:Math.round(ratio*100),ratio,sufficient:true,level:2})
+  if((slot>=12&&slot<17)||(slot>=34&&slot<39))cell.allowed_windows=[{start:'06:00',end:'08:30',offset:0,width:100}]
+}
+for(const [slot,ratio] of [[10,.41],[11,.42],[12,1]]) Object.assign(fixture.heatmap.rows[0].cells[slot],{ratio,event_days:ratio*100})
+fixture.heatmap.rows[0].cells[12].planned_runs=[{start:'06:05',end:'06:07',offset:16.67,width:6.67}]
 // A hosting shell is allowed to clip its custom-element surface. The actual
 // scroller must be inside the panel, beyond external host CSS overrides.
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -178,6 +189,27 @@ try {
         ['dark','rgb(16, 21, 29)','rgb(238, 244, 252)','rgb(142, 197, 255)','rgb(11, 20, 32)']]) {
         await evaluate(`if(root.querySelector('.app-shell').dataset.theme!==${JSON.stringify(theme)})root.querySelector('.theme-button').click()`)
         await until(() => evaluate(`root.querySelector('.app-shell').dataset.theme===${JSON.stringify(theme)} && root.querySelector('main').id===${JSON.stringify(index===0?'overview':'settings')}`), 'theme and route rendering')
+        await until(() => evaluate(`Boolean(root.querySelector(${JSON.stringify(width<=640?'.bottom-navigation nav':'header nav')}))`), 'responsive navigation placement')
+        const identity=await evaluate("(()=>{const header=root.querySelector('.app-header').getBoundingClientRect(),logo=root.querySelector('.brand-logo').getBoundingClientRect(),host=testPanel.getBoundingClientRect(),nav=root.querySelector('.app-navigation').getBoundingClientRect(),font=getComputedStyle(root.querySelector('.app-shell'));return{headerHeight:header.height,logoWidth:logo.width,logoLeft:logo.left-host.left,navBottom:nav.bottom,font:font.fontFamily,navCount:root.querySelectorAll('nav[aria-label=Hauptnavigation]').length}})()")
+        assert.equal(identity.headerHeight,width<=450?57:65,'EOS title bar height')
+        assert.equal(identity.logoWidth,width<=450?32:38,'EOS logo size')
+        assert.equal(identity.logoLeft,width===390?12:28,'EOS logo gutter')
+        assert.ok(identity.font.includes('system-ui'),'EOS system font')
+        assert.equal(identity.navCount,1,'Only one main navigation after resize')
+        if(width<=640)assert.ok(identity.navBottom<=height && identity.navBottom>height-25,'Phone navigation stays at bottom')
+        if(index===0){
+          const heat=await evaluate("(()=>{const cells=root.querySelectorAll('tbody tr:first-child .heat-cell'),a=getComputedStyle(cells[10]),b=getComputedStyle(cells[11]),full=getComputedStyle(cells[12]),allowed=getComputedStyle(cells[12].querySelector('.allowed-window'));return{a:a.backgroundColor,b:b.backgroundColor,full:full.backgroundColor,allowed:allowed.backgroundColor,outline:allowed.boxShadow}})()")
+          assert.notEqual(heat.a,heat.b,'41% and 42% produce distinct continuous colors')
+          assert.equal(heat.allowed,theme==='light'?'rgb(39, 116, 72)':'rgb(117, 219, 160)','Green EOS permission marker')
+          assert.notEqual(heat.full,heat.allowed,'Permission stays distinct from 100% usage')
+          assert.notEqual(heat.outline,'none','Permission has a separating outline')
+        }
+        if(index===1 && width<=640){
+          const layout=await evaluate("(()=>{const nav=root.querySelector('.app-navigation').getBoundingClientRect(),save=root.querySelector('.save-bar').getBoundingClientRect(),buttons=[...root.querySelectorAll('.settings-nav button')].map(button=>button.getBoundingClientRect());return{navTop:nav.top,saveBottom:save.bottom,tabGap:root.querySelector('.settings-content').getBoundingClientRect().top-root.querySelector('.settings-nav').getBoundingClientRect().bottom,overlap:buttons.some((button,index)=>index>0&&button.left<buttons[index-1].right-1)}})()")
+          assert.ok(layout.saveBottom<=layout.navTop,'Save bar stays above phone navigation')
+          assert.equal(layout.overlap,false,'Settings tabs never overlap at readable text size')
+          assert.ok(layout.tabGap>=13.5,'EOS spacing between mobile section tabs and form')
+        }
         const colors=await evaluate("(()=>{const shell=getComputedStyle(root.querySelector('.app-shell')),button=root.querySelector('.primary-button');return{background:shell.backgroundColor,text:shell.color,button:button?getComputedStyle(button).backgroundColor:null,onButton:button?getComputedStyle(button).color:null}})()")
         assert.equal(colors.background,bg, `EOS ${theme} background`)
         assert.equal(colors.text,ink, `EOS ${theme} foreground`)
@@ -190,8 +222,24 @@ try {
       }
     }
   }
+  for(const width of [320,450,640,641,760]){
+    await command('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:width<=640})
+    await until(()=>evaluate(`Boolean(root.querySelector(${JSON.stringify(width<=640?'.bottom-navigation nav':'header nav')}))`),'navigation breakpoint')
+    const size=await evaluate("(()=>{const header=root.querySelector('.app-header').getBoundingClientRect(),inner=root.querySelector('.header-inner'),nav=root.querySelector('.app-navigation');return{height:header.height,overflow:inner.scrollWidth-inner.clientWidth,count:nav.querySelectorAll('a').length}})()")
+    assert.equal(size.height,width<=450?57:width<=640?63:65,`${width}px EOS header height`)
+    assert.ok(size.overflow<=1,`${width}px header fits without horizontal clipping`)
+    assert.equal(size.count,2)
+  }
+  await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true})
+  await until(()=>evaluate("Boolean(root.querySelector('.bottom-navigation nav'))"),'bottom navigation for real clicks')
+  for(const [index,page] of [[0,'overview'],[1,'settings']]){
+    const point=await evaluate(`(()=>{const r=root.querySelectorAll('.app-navigation a')[${index}].getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`)
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1})
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1})
+    await until(()=>evaluate(`root.querySelector('main').id===${JSON.stringify(page)}`),'real bottom navigation click')
+  }
   assert.deepEqual(exceptions, [])
-  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells, native sidebar touch gestures and exact EOS theme colors.')
+  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells, native sidebar touch gestures, exact EOS theme colors and geometry, bottom phone navigation and continuous heatmap colors.')
 } finally {
   if (socket?.readyState === WebSocket.OPEN) { await command('Browser.close').catch(() => {}); socket.close() }
   if (browser && browser.exitCode === null) {

@@ -1,5 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App.vue'
 import { createPanelRouter } from './router'
 import { entry } from './test/fixtures'
@@ -7,7 +7,31 @@ import lightLogo from './assets/images/icon.svg'
 import darkLogo from './assets/images/dark_icon.svg'
 const state=()=>({entries:[entry()],loading:false,error:null as string|null,updatedAt:null,darkMode:false})
 async function start(){const router=createPanelRouter();await router.push('/');const wrapper=mount(App,{props:{state:state()},global:{plugins:[router]}});await flushPromises();return{router,wrapper}}
+afterEach(()=>vi.unstubAllGlobals())
 describe('application navigation and persistent header',()=>{
+ it('moves the same icon navigation to the bottom on phones and preserves settings during resize',async()=>{
+  let narrow=true
+  const media=new EventTarget() as MediaQueryList
+  Object.defineProperties(media,{matches:{get:()=>narrow},media:{value:'(max-width: 640px)'}})
+  const remove=vi.spyOn(media,'removeEventListener')
+  vi.stubGlobal('matchMedia',vi.fn(()=>media))
+  const{router,wrapper}=await start()
+  expect(wrapper.findAll('nav[aria-label="Hauptnavigation"]')).toHaveLength(1)
+  expect(wrapper.findAll('.bottom-navigation nav a')).toHaveLength(2)
+  expect(wrapper.find('header nav').exists()).toBe(false)
+  expect(wrapper.findAll('.bottom-navigation nav svg')).toHaveLength(2)
+  await wrapper.get('.bottom-navigation a[href="/settings"]').trigger('click');await flushPromises()
+  expect(router.currentRoute.value.name).toBe('settings')
+  expect(wrapper.get('nav a[aria-current="page"]').text()).toBe('Einstellungen')
+  await wrapper.get('[aria-label="Montag Zeitraum hinzufügen"]').trigger('click')
+  await wrapper.get('[aria-label="Montag Abschnitt 1 von"]').setValue('05:45')
+  narrow=false;media.dispatchEvent(new Event('change'));await flushPromises()
+  expect(wrapper.findAll('header nav a')).toHaveLength(2)
+  expect(wrapper.find('.bottom-navigation nav').exists()).toBe(false)
+  expect(wrapper.findAll('nav[aria-label="Hauptnavigation"]')).toHaveLength(1)
+  expect(wrapper.get('[aria-label="Montag Abschnitt 1 von"]').element.value).toBe('05:45')
+  wrapper.unmount();expect(remove).toHaveBeenCalledWith('change',expect.any(Function))
+ })
  it('keeps the shared header outside the scrolling route content on both pages',async()=>{const{router,wrapper}=await start();for(const path of ['/','/settings']){await router.push(path);await flushPromises();expect(wrapper.find('[aria-label="Navigation öffnen"]').exists()).toBe(false);expect(wrapper.find('.menu-button').exists()).toBe(false);expect(wrapper.get('.panel-viewport').find('header').exists()).toBe(false);expect(wrapper.get('.panel-viewport main').exists()).toBe(true);expect(wrapper.get('.panel-viewport footer').exists()).toBe(true);expect(wrapper.get('.app-header').element.parentElement).toBe(wrapper.get('.panel-viewport').element.parentElement)}wrapper.unmount()})
  it('shows only brand and active navigation instead of a duplicate breadcrumb',async()=>{const{router,wrapper}=await start();expect(wrapper.find('header h1').exists()).toBe(false);expect(wrapper.find('.header-divider').exists()).toBe(false);expect(wrapper.get('nav a.active').text()).toBe('Übersicht');await router.push('/settings');await flushPromises();expect(wrapper.get('nav a.active').text()).toBe('Einstellungen');expect(wrapper.find('header h1').exists()).toBe(false);wrapper.unmount()})
  it('renders the dashboard and forwards refresh from the shared header',async()=>{const{wrapper}=await start();expect(wrapper.text()).toContain('Test-Zirkulation');await wrapper.get('[aria-label=Aktualisieren]').trigger('click');expect(wrapper.emitted('refresh')).toHaveLength(1);wrapper.unmount()})

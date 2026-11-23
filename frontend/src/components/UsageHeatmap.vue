@@ -41,7 +41,7 @@ function navigate(event: KeyboardEvent, row: number, slot: number) {
 <template>
   <section class="heatmap heatmap-card surface" aria-label="Zapfmuster nach Wochentag">
     <div class="heatmap-header"><h3>Dein Warmwasser-Rhythmus</h3><span>Letzte {{ data.retention_days }} Tage</span></div>
-    <p class="subtle">Die Farbe zeigt den Anteil beobachteter Tage mit erkanntem Zapfvorgang je halber Stunde.</p>
+    <p class="subtle">Die Farbsättigung zeigt stufenlos den Anteil beobachteter Tage mit erkanntem Zapfvorgang je halber Stunde.</p>
     <p v-if="data.planning" class="planning-note">{{ data.planning.mode === 'monitoring' ? 'Planungsvorschau im Monitoring · automatische Schaltbefehle sind ausgeschaltet.' : 'Planung der nächsten ' + data.planning.horizon_days + ' Tage · Ausführung bei gültigen Live-Werten und freigegebener Steuerung.' }}<template v-if="data.planning.vacation_active"> Das Urlaubsprofil bestimmt die dargestellten Freigaben.</template></p>
     <p v-if="!data.observed_dates" class="empty-heatmap">Noch keine ausreichenden Beobachtungen vorhanden. Vorhandene HA-Historie wird zum Lernstart eingelesen. Vorhandene Lücken werden nicht als „kein Verbrauch“ gewertet.</p>
     <div class="heatmap-controls"><span class="view-label">ENTNAHMEN PRO HALBER STUNDE</span><div class="overlay-toggles"><label><input v-model="showAllowed" type="checkbox">Freigaben</label><label><input v-model="showPlanned" type="checkbox">Vorwärmen</label></div></div>
@@ -52,7 +52,8 @@ function navigate(event: KeyboardEvent, row: number, slot: number) {
           <td v-for="(cell, slot) in row.cells" :key="slot"><button type="button" class="heat-cell" :data-row="rowIndex" :data-slot="slot"
             :tabindex="focused.row === rowIndex && focused.slot === slot ? 0 : -1"
             @focus="focused = { row: rowIndex, slot }" @keydown="navigate($event, rowIndex, slot)"
-            :class="[cell.level === null ? 'no-data' : `level-${cell.level}`, { provisional: cell.ratio !== null && !cell.sufficient }]"
+            :class="{ 'no-data': cell.ratio === null, provisional: cell.ratio !== null && !cell.sufficient }"
+            :style="cell.ratio === null ? undefined : { '--usage': cell.ratio }"
             :title="describe(row.key, slot, cell)" :aria-label="describe(row.key, slot, cell)"
             @click="selected = {row:row.key,slot}">
             <span v-for="(window,index) in showAllowed ? cell.allowed_windows ?? [] : []" :key="`allowed-${index}`" class="allowed-window" aria-hidden="true" :style="{left:window.offset+'%',width:window.width+'%'}"></span>
@@ -61,7 +62,11 @@ function navigate(event: KeyboardEvent, row: number, slot: number) {
         </tr></tbody>
       </table>
     </div>
-    <div class="legend"><span><i class="no-data"></i>Keine Messbasis</span><span><i class="level-0"></i>0 %</span><span><i class="level-2"></i>50 %</span><span><i class="level-4"></i>100 %</span><span><i class="level-2 provisional"></i>Vorläufig</span><template v-if="data.planning"><span><i class="legend-allowed"></i>Freigabezeit</span><span><i class="legend-planned"></i>Geplantes Vorwärmen</span></template></div>
+    <div class="legend">
+      <span class="usage-scale" role="img" aria-label="Entnahmequote: stufenlos von 0 bis 100 Prozent"><span>0 %</span><i class="usage-gradient" aria-hidden="true"></i><span>100 %</span></span>
+      <span><i class="no-data" aria-hidden="true"></i>Keine Messbasis</span><span><i class="legend-provisional provisional" aria-hidden="true"></i>Vorläufig</span>
+      <template v-if="data.planning"><span><i class="legend-allowed" aria-hidden="true"></i>Freigabezeit</span><span><i class="legend-planned" aria-hidden="true"></i>Geplantes Vorwärmen</span></template>
+    </div>
     <p class="cell-detail" aria-live="polite">{{ selectedText }}</p>
     <details class="heatmap-help"><summary>Wie wird die Heatmap berechnet?</summary><p class="subtle">Ein Tag zählt pro Zelle ab {{ data.minimum_coverage_minutes }} Minuten gültiger Messungen bei ausgeschalteter Pumpe. Ab {{ data.minimum_observed_days }} Tagen gilt die Messbasis als ausreichend. Sonntage und konfigurierte Feiertage werden gemeinsam gezählt; jeder Kalendertag zählt einmal.</p></details>
     <p v-if="!data.calendar_enabled" class="calendar-hint">Feiertage sind noch nicht konfiguriert. Land und Bundesland/Region unter „Konfigurieren → Feiertagskalender“ auswählen.</p>
