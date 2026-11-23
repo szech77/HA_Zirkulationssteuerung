@@ -1,22 +1,14 @@
 // Run after the production build. No browser package or download is required.
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findChrome, startChrome } from './chrome.mjs'
 
 const bundle = fileURLToPath(new URL('../custom_components/warmwasser_zirkulation/web/', import.meta.url))
-const candidates = [process.env.CHROME_BIN,
-  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  process.env.ProgramFiles && join(process.env.ProgramFiles, 'Google/Chrome/Application/chrome.exe'),
-  process.env['ProgramFiles(x86)'] && join(process.env['ProgramFiles(x86)'], 'Microsoft/Edge/Application/msedge.exe')].filter(Boolean)
-let executable
-for (const path of candidates) { try { await access(path); executable = path; break } catch {} }
-assert.ok(executable, 'Install Chrome/Chromium or set CHROME_BIN to run the browser scroll checks')
+const executable = await findChrome()
 
 const fixture = {
   entry_id: 'scroll-test', title: 'Synthetic scroll regression', reason: 'monitoring', status_level: 'normal',
@@ -62,8 +54,7 @@ const server = createServer((request, response) => {
 })
 server.listen(0, '127.0.0.1'); await once(server, 'listening')
 const origin = `http://127.0.0.1:${server.address().port}`
-const temporary = await mkdtemp(join(tmpdir(), 'circulation-scroll-'))
-let browser, socket, browserExit, sequence = 0
+let browser, socket, sequence = 0
 const pending = new Map(), exceptions = []
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 async function until(check, label, timeout = 15000) {
@@ -97,13 +88,8 @@ async function swipe(points) {
   await delay(200)
 }
 try {
-  browser = spawn(executable, ['--headless=new', '--no-first-run', '--no-default-browser-check',
-    '--disable-background-networking', '--remote-debugging-port=0', `--user-data-dir=${temporary}`, origin],
-    { stdio:'ignore', windowsHide:true })
-  browserExit = once(browser, 'exit')
-  const port = await until(async () => {
-    try { return Number((await readFile(join(temporary,'DevToolsActivePort'),'utf8')).split('\n')[0]) } catch { return false }
-  }, 'isolated Chrome startup')
+  browser = await startChrome(executable, origin)
+  const port = browser.port
   const target = await until(async () => (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(item => item.type === 'page' && item.url.startsWith(origin)), 'test page')
   socket = new WebSocket(target.webSocketDebuggerUrl); await once(socket, 'open')
   socket.addEventListener('message', event => {
@@ -242,13 +228,6 @@ try {
   console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells, native sidebar touch gestures, exact EOS theme colors and geometry, bottom phone navigation and continuous heatmap colors.')
 } finally {
   if (socket?.readyState === WebSocket.OPEN) { await command('Browser.close').catch(() => {}); socket.close() }
-  if (browser && browser.exitCode === null) {
-    await Promise.race([browserExit, delay(2000)])
-    if (browser.exitCode === null) { browser.kill(); await Promise.race([browserExit, delay(3000)]) }
-  }
-  server.closeAllConnections(); await new Promise(resolve => server.close(resolve))
-  const target = await realpath(temporary)
-  assert.equal(dirname(target), await realpath(tmpdir()))
-  assert.ok(basename(target).startsWith('circulation-scroll-'))
-  await rm(target, { recursive:true,force:true,maxRetries:5,retryDelay:100 })
+  try { await browser?.stop() }
+  finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)) }
 }

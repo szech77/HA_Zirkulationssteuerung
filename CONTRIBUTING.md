@@ -22,7 +22,10 @@ sein.
 
 Für die Frontend-Werkzeuge Node **22.22.2 oder neuer aus der 22er-Reihe**,
 **24.15.0 oder neuer aus der 24er-Reihe** oder **26+** verwenden. Die CI prüft
-Node 22.22.2. `.npmrc` deaktiviert Lifecycle-Skripte auch bei einem einfachen
+Node 22.22.2. Der exakt gepinnte Vue-Compileradapter `@vitejs/plugin-vue` 6.0.10
+unterstützt das verwendete Vite 6 und Vue 3.5. Seine Node-Untergrenze
+(20.19 bzw. 22.12) ist durch die Projektvorgaben bereits erfüllt.
+`.npmrc` deaktiviert Lifecycle-Skripte auch bei einem einfachen
 `npm ci`; `package-lock.json` weiterhin zusammen mit `package.json` pflegen.
 
 `jsdom` 31.0.0 ersetzt die veraltete DOM-Testkette. `js-beautify` 2.0.3 verwendet
@@ -191,7 +194,8 @@ Damit hängt die Leiste nicht von `position: sticky` ab. Die Heatmap hat
 ihren eigenen horizontalen Scrollbereich. Keine Rad-/Touchpad-Ereignisse abfangen
 oder per JavaScript nachbilden.
 
-Nach `npm run build` im Frontend zusätzlich `npm run test:browser` ausführen.
+Nach `npm run build` im Frontend zusätzlich `npm run test:tools` und
+`npm run test:browser` ausführen.
 Der Test nutzt ein bereits installiertes Chrome/Chromium (optional über
 `CHROME_BIN`) mit isoliertem temporärem Profil und synthetischen Daten. Er prüft
 echte Mausrad-Eingaben, gebrochene Touchpad-Deltas, die schmale Ansicht, beide

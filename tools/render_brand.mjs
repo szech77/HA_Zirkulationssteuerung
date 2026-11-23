@@ -1,28 +1,19 @@
 // Export the editable SVG sources for HA's native branding; no extra dependency.
-import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { access, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { readFile, writeFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findChrome, startChrome } from './chrome.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const candidates = [process.env.CHROME_BIN, '/usr/bin/google-chrome', '/usr/bin/chromium',
-  '/usr/bin/chromium-browser', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  process.env.ProgramFiles && join(process.env.ProgramFiles,'Google/Chrome/Application/chrome.exe'),
-  process.env['ProgramFiles(x86)'] && join(process.env['ProgramFiles(x86)'],'Microsoft/Edge/Application/msedge.exe')].filter(Boolean)
-let executable
-for (const path of candidates) { try { await access(path); executable=path; break } catch {} }
-assert.ok(executable, 'Install Chrome/Chromium or set CHROME_BIN')
-const temporary = await mkdtemp(join(tmpdir(),'circulation-brand-'))
+const executable = await findChrome()
 const delay = ms => new Promise(resolve => setTimeout(resolve,ms))
 async function until(check) {
   const deadline=Date.now()+15000
   while(Date.now()<deadline) { const result=await check();if(result)return result;await delay(50) }
   throw new Error('Timed out while rendering branding')
 }
-let browser, browserExit, socket, sequence=0
+let browser, socket, sequence=0
 const pending=new Map()
 function command(method,params={}) {
   return new Promise((resolve,reject)=>{
@@ -32,13 +23,8 @@ function command(method,params={}) {
   })
 }
 try {
-  browser=spawn(executable,['--headless=new','--no-first-run','--no-default-browser-check',
-    '--disable-background-networking','--remote-debugging-port=0',`--user-data-dir=${temporary}`,'about:blank'],
-    {stdio:'ignore',windowsHide:true})
-  browserExit=once(browser,'exit')
-  const port=await until(async()=>{
-    try{return Number((await readFile(join(temporary,'DevToolsActivePort'),'utf8')).split('\n')[0])}catch{return false}
-  })
+  browser=await startChrome(executable,'about:blank')
+  const port=browser.port
   const page=await until(async()=>(await(await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(item=>item.type==='page'))
   socket=new WebSocket(page.webSocketDebuggerUrl);await once(socket,'open')
   socket.addEventListener('message',event=>{
@@ -71,9 +57,5 @@ try {
   }
 } finally {
   if(socket?.readyState===WebSocket.OPEN){await command('Browser.close').catch(()=>{});socket.close()}
-  if(browser && browser.exitCode===null){await Promise.race([browserExit,delay(2000)]);if(browser.exitCode===null){browser.kill();await Promise.race([browserExit,delay(3000)])}}
-  const target=await realpath(temporary)
-  assert.equal(dirname(target),await realpath(tmpdir()))
-  assert.ok(basename(target).startsWith('circulation-brand-'))
-  await rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:100})
+  await browser?.stop()
 }
