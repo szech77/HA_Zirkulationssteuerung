@@ -185,7 +185,9 @@ python -m pytest -q tests/adapters/test_config_flow.py tests/adapters/test_nativ
 ## Scrollen im eingebetteten Panel prüfen
 
 Das äußere HA-Custom-Element begrenzt die Fläche; `.panel-viewport` im Shadow DOM
-übernimmt das native Scrollen. Die Titelleiste bleibt darin oben, die Heatmap hat
+übernimmt das native Scrollen. Die Titelleiste steht als eigene Flex-Zeile außerhalb
+dieses Scrollbereichs; `.panel-root` begrenzt die App auf die verfügbare HA-Fläche.
+Damit hängt die Leiste nicht von `position: sticky` ab. Die Heatmap hat
 ihren eigenen horizontalen Scrollbereich. Keine Rad-/Touchpad-Ereignisse abfangen
 oder per JavaScript nachbilden.
 

@@ -5,11 +5,18 @@
   overflow: hidden;
 }
 
-/* Scroll inside the shadow root: HA may clip the custom-element host. */
+/* Bound the app even when an HA ancestor has no definite percentage height. */
+.panel-root {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Only the route content scrolls; the header is a separate flex row. */
 .panel-viewport {
-  height: 100%;
-  max-height: 100vh;
-  max-height: 100dvh;
+  flex: 1;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -64,7 +71,11 @@
 }
 
 .app-shell {
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   margin: 0;
   background: var(--bg);
   color: var(--ink);
@@ -132,8 +143,8 @@ svg.icon {
 }
 
 .app-header {
-  position: sticky;
-  top: 0;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 50;
   border-bottom: 1px solid var(--line);
   background: var(--header);
@@ -889,7 +900,7 @@ select option {
 .settings-nav {
   align-self: start;
   position: sticky;
-  top: 109px;
+  top: 24px;
   display: flex;
   flex-direction: column;
   gap: 5px
@@ -2159,7 +2170,7 @@ fieldset {
 }
 
 .settings-nav {
-  top: 109px
+  top: 24px
 }
 
 .settings-nav button {

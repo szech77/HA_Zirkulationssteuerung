@@ -20,9 +20,11 @@ const dark = computed(() => themeOverride.value ?? Boolean(props.state.darkMode)
       <button class="icon-button refresh-button" :disabled="state.loading" :aria-label="state.loading ? 'Wird geladen …' : 'Aktualisieren'" title="Aktualisieren" @click="$emit('refresh')"><UiIcon name="refresh" /></button>
       <button class="icon-button theme-button" :aria-label="dark ? 'Helle Ansicht aktivieren' : 'Dunkle Ansicht aktivieren'" @click="themeOverride = !dark"><UiIcon :name="dark ? 'sun' : 'moon'" /></button>
     </div></header>
-    <RouterView v-slot="{ Component }">
-      <KeepAlive><component :is="Component" :state="state" :save-settings="saveSettings" :import-history="importHistory" @refresh="$emit('refresh')" /></KeepAlive>
-    </RouterView>
-    <footer class="page-footer"><span><i class="status-dot"></i><template v-if="state.error">Verbindung unterbrochen</template><template v-else-if="state.updatedAt">Aktualisiert {{ new Date(state.updatedAt).toLocaleTimeString('de-DE') }} · alle 15 Sekunden</template><template v-else>Verbindung mit Home Assistant</template></span><span>Warmwasser-Zirkulation</span></footer>
+    <div class="panel-viewport">
+      <RouterView v-slot="{ Component }">
+        <KeepAlive><component :is="Component" :state="state" :save-settings="saveSettings" :import-history="importHistory" @refresh="$emit('refresh')" /></KeepAlive>
+      </RouterView>
+      <footer class="page-footer"><span><i class="status-dot"></i><template v-if="state.error">Verbindung unterbrochen</template><template v-else-if="state.updatedAt">Aktualisiert {{ new Date(state.updatedAt).toLocaleTimeString('de-DE') }} · alle 15 Sekunden</template><template v-else>Verbindung mit Home Assistant</template></span><span>Warmwasser-Zirkulation</span></footer>
+    </div>
   </div>
 </template>

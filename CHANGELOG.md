@@ -25,6 +25,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Die Titelleiste als feste Layoutzeile außerhalb des scrollbaren Seiteninhalts halten. Die Panelhöhe auch bei unbestimmten HA-Elternhöhen begrenzen; Übersicht und Einstellungen bis zum Seitenende mit Mausrad und Touchpad prüfen.
 - Den nativen Scrollbereich in den Shadow-DOM-Inhalt des Panels verlegen, damit Mausrad und Zwei-Finger-Touchpad-Scrollen auch bei einem von HA begrenzten äußeren Custom-Element funktionieren. Feste Titelleiste, horizontales Scrollen der Heatmap und Zurücksetzen der Scrollposition beim Seitenwechsel erhalten; Browser-Regression mit echten Rad-Deltas in der CI ergänzen.
 - Den Frontend-Start unter Home Assistant reparieren: den internen Controller als echtes privates Feld führen, damit HAs öffentliche `panel`-Metadaten ihn nicht überschreiben. Den Start mit HA-Eigenschaften, spätere Metadatenänderungen und das Beenden des Pollings als Regression prüfen.
 - Den Python-Code in ein vollständig mit HACS ausgeliefertes `app/`-Paket mit API, Konfiguration, Modellen, Validierung, Fachservices, Speicher, Adaptern und Hilfsfunktionen aufteilen. HA-Einstiege, WebSocket-Namen, Speicherschlüssel erhalten; Tests nach Verantwortlichkeiten ordnen und isolierte Installationskopien prüfen.

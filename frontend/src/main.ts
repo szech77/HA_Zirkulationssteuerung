@@ -23,13 +23,16 @@ export class WarmwasserPanel extends HTMLElement {
     stylesheet.rel = 'stylesheet'
     stylesheet.href = '/warmwasser-zirkulation-static/panel.css'
     const target = document.createElement('div')
-    target.className = 'panel-viewport'
+    target.className = 'panel-root'
     root.append(stylesheet, target)
     this.#stopSidebarSwipe = useSidebarSwipe(target, () => {
       this.dispatchEvent(new CustomEvent('hass-toggle-menu', { detail: { open: true }, bubbles: true, composed: true }))
     })
     const router = createPanelRouter()
-    router.afterEach(() => { target.scrollTop = 0 })
+    router.afterEach(() => {
+      const viewport = target.querySelector<HTMLElement>('.panel-viewport')
+      if (viewport) viewport.scrollTop = 0
+    })
     this.app = createApp(App, {
       state: this.#controller.state, saveSettings: this.#controller.configure, importHistory: this.#controller.importHistory,
       onRefresh: () => void this.#controller.refresh(),

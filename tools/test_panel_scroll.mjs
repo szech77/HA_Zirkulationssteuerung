@@ -106,7 +106,7 @@ try {
   socket.addEventListener('close', () => { for (const call of pending.values()) { clearTimeout(call.timer); call.reject(new Error('Browser closed')) } pending.clear() })
   await command('Runtime.enable')
   await until(() => evaluate("Boolean(window.testPanel?.shadowRoot?.querySelector('.heat-cell'))"), 'Vue panel rendering')
-  await evaluate("window.root=testPanel.shadowRoot;window.viewport=root.querySelector('.panel-viewport') || testPanel;true")
+  await evaluate("window.root=testPanel.shadowRoot;window.viewport=root.querySelector('.panel-viewport');true")
   assert.ok(await evaluate('Boolean(viewport)'), 'Panel needs an internal scroll viewport')
   await command('Emulation.setDeviceMetricsOverride', { width:1280,height:720,deviceScaleFactor:1,mobile:false })
   assert.equal(await evaluate("getComputedStyle(testPanel).overflowY"), 'hidden')
@@ -135,6 +135,28 @@ try {
   assert.ok(await evaluate(`viewport.scrollTop > ${verticalBefore}`), 'Vertical wheel over heatmap reaches page viewport')
   assert.equal(await evaluate("root.querySelector('.app-header').getBoundingClientRect().top"), 0)
   assert.equal(await evaluate("root.querySelector('header h1')"), null, 'No duplicate breadcrumb')
+  // Scroll every page to its end in full-height, offset and auto-height HA shells.
+  // The header must be outside the scrolling content, including on narrow screens.
+  assert.equal(await evaluate("viewport.contains(root.querySelector('.app-header'))"), false)
+  for (const [width,height,mobile] of [[1280,720,false],[390,844,true]]) {
+    await command('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile})
+    for (const layout of ['full','offset','auto']) {
+      await evaluate(`(()=>{const shell=document.querySelector('ha-panel-custom');shell.style.height=${JSON.stringify(layout)}==='auto'?'auto':${JSON.stringify(layout)}==='offset'?'calc(100% - 56px)':'100%';shell.style.marginTop=${JSON.stringify(layout)}==='offset'?'56px':'0';testPanel.style.height=${JSON.stringify(layout)}==='auto'?'auto':'100%'})()`)
+      for (const [index,title] of [[0,'Übersicht'],[1,'Einstellungen']]) {
+        await evaluate(`root.querySelectorAll('nav a')[${index}].click();viewport.scrollTop=0`)
+        await until(() => evaluate(`root.querySelector('h1').textContent===${JSON.stringify(title)}`), 'route for fixed header check')
+        await wheel(width/2,height/2,0,100000)
+        await until(() => evaluate('viewport.scrollTop>0 && Math.abs(viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop)<1'), 'page end')
+        const bounds=await evaluate("(()=>{const header=root.querySelector('.app-header').getBoundingClientRect(),content=viewport.getBoundingClientRect(),host=testPanel.getBoundingClientRect(),footer=root.querySelector('footer').getBoundingClientRect();return{top:header.top,expected:host.top,headerBottom:header.bottom,contentTop:content.top,contentBottom:content.bottom,hostBottom:host.bottom,footerBottom:footer.bottom}})()")
+        assert.ok(Math.abs(bounds.top-bounds.expected)<1, `${title} ${width}px ${layout}: header stays at panel top`)
+        assert.ok(Math.abs(bounds.headerBottom-bounds.contentTop)<1, 'Content starts below header without overlap')
+        assert.ok(bounds.contentBottom<=bounds.hostBottom+1 && bounds.contentBottom<=height+1, 'Content remains within available HA height')
+        assert.ok(bounds.footerBottom<=bounds.contentBottom+1, 'Page footer remains reachable')
+      }
+    }
+  }
+  await evaluate("document.querySelector('ha-panel-custom').style.cssText='';testPanel.style.height='100%';root.querySelectorAll('nav a')[0].click()")
+  await until(() => evaluate("root.querySelector('h1').textContent==='Übersicht'"), 'overview for sidebar gestures')
   await command('Emulation.setTouchEmulationEnabled', {enabled:true,maxTouchPoints:2})
   await evaluate('viewport.scrollTop=0')
   await swipe([[8,350],[25,350],[50,352],[85,353],[120,354]])
@@ -146,7 +168,7 @@ try {
   await swipe([[180,350],[220,350],[260,350],[300,350]])
   assert.equal(await evaluate('sidebarEvents.length'), 2, 'Vertical and ordinary content swipes do not open menu')
   assert.deepEqual(exceptions, [])
-  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, sticky header and native sidebar touch gestures.')
+  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells and native sidebar touch gestures.')
 } finally {
   if (socket?.readyState === WebSocket.OPEN) { await command('Browser.close').catch(() => {}); socket.close() }
   if (browser && browser.exitCode === null) {
