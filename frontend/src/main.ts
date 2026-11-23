@@ -1,6 +1,7 @@
 import { createApp, type App as VueApp } from 'vue'
 import App from './App.vue'
 import { useHomeAssistantPanel } from './composables/useHomeAssistantPanel'
+import { useSidebarSwipe } from './composables/useSidebarSwipe'
 import { createPanelRouter } from './router'
 import type { ControlSettings, HomeAssistant } from './types'
 import './assets/styles/panel.css'
@@ -10,6 +11,7 @@ export class WarmwasserPanel extends HTMLElement {
   private app: VueApp | null = null
   // HA owns public panel/hass/route/narrow properties on this custom element.
   readonly #controller = useHomeAssistantPanel()
+  #stopSidebarSwipe: (() => void) | null = null
 
   set hass(value: HomeAssistant) { this.#controller.setHass(value) }
 
@@ -21,9 +23,13 @@ export class WarmwasserPanel extends HTMLElement {
     stylesheet.rel = 'stylesheet'
     stylesheet.href = '/warmwasser-zirkulation-static/panel.css'
     const target = document.createElement('div')
+    target.className = 'panel-viewport'
     root.append(stylesheet, target)
+    this.#stopSidebarSwipe = useSidebarSwipe(target, () => {
+      this.dispatchEvent(new CustomEvent('hass-toggle-menu', { detail: { open: true }, bubbles: true, composed: true }))
+    })
     const router = createPanelRouter()
-    router.afterEach(() => { this.scrollTop = 0 })
+    router.afterEach(() => { target.scrollTop = 0 })
     this.app = createApp(App, {
       state: this.#controller.state, saveSettings: this.#controller.configure, importHistory: this.#controller.importHistory,
       onRefresh: () => void this.#controller.refresh(),
@@ -36,6 +42,8 @@ export class WarmwasserPanel extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.#stopSidebarSwipe?.()
+    this.#stopSidebarSwipe = null
     this.#controller.disconnect()
     this.app?.unmount()
     this.app = null

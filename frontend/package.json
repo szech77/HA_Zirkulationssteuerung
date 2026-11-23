@@ -6,7 +6,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "audit": "npm audit --audit-level=high",
-    "build": "vite build"
+    "build": "vite build",
+    "test:browser": "node ../tools/test_panel_scroll.mjs"
   },
   "dependencies": {
     "vue": "^3.5.0",

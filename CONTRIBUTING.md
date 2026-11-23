@@ -180,3 +180,21 @@ python -m pytest -q tests/adapters/test_config_flow.py tests/adapters/test_nativ
 - Changelog, Dokumentation und Tests bei Bedarf im selben Pull Request aktualisieren.
 - Commits thematisch klein halten.
 - Keine produktiven Systeme aktivieren und nicht automatisch pushen.
+
+
+## Scrollen im eingebetteten Panel prüfen
+
+Das äußere HA-Custom-Element begrenzt die Fläche; `.panel-viewport` im Shadow DOM
+übernimmt das native Scrollen. Die Titelleiste bleibt darin oben, die Heatmap hat
+ihren eigenen horizontalen Scrollbereich. Keine Rad-/Touchpad-Ereignisse abfangen
+oder per JavaScript nachbilden.
+
+Nach `npm run build` im Frontend zusätzlich `npm run test:browser` ausführen.
+Der Test nutzt ein bereits installiertes Chrome/Chromium (optional über
+`CHROME_BIN`) mit isoliertem temporärem Profil und synthetischen Daten. Er prüft
+echte Mausrad-Eingaben, gebrochene Touchpad-Deltas, die schmale Ansicht, beide
+Scrollachsen der Heatmap, Routenwechsel, die feste Titelleiste und echte Touch-Gesten
+für das native HA-Menü. Die passive Wischerkennung am linken Rand sendet
+`hass-toggle-menu` mit `open: true`; vertikale Bewegungen, mehrere Finger und
+Bedienelemente lösen das Menü nicht aus. Die CI führt
+ihn im Python-3.14-Testjob mit dem Browser des Ubuntu-Runner-Images aus.

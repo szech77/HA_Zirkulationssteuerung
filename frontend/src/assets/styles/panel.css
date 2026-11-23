@@ -1,8 +1,19 @@
 :host {
   display: block;
   height: 100%;
-  overflow: auto;
-  overscroll-behavior: contain
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Scroll inside the shadow root: HA may clip the custom-element host. */
+.panel-viewport {
+  height: 100%;
+  max-height: 100vh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 * {
@@ -160,13 +171,6 @@ svg.icon {
   font-weight: 600;
   color: var(--muted);
   margin-top: 3px
-}
-
-.header-divider {
-  height: 24px;
-  width: 1px;
-  background: var(--line);
-  margin-left: 4px
 }
 
 h1 {
@@ -1467,10 +1471,6 @@ dialog .primary-button {
     padding: 0 25px
   }
 
-  .header-divider {
-    margin-left: 0
-  }
-
   .demo-badge {
     display: none
   }
@@ -1562,10 +1562,6 @@ dialog .primary-button {
   .brand small {
     font-size: 7px;
     letter-spacing: 1.5px
-  }
-
-  .header-divider {
-    height: 22px
   }
 
   h1 {
@@ -2458,9 +2454,6 @@ fieldset {
     height: 32px
   }
 
-  .header-divider {
-    display: none
-  }
 }
 
 @media(max-width:650px) {
@@ -2471,10 +2464,6 @@ fieldset {
 
   .header-inner .menu-button {
     margin-left: -3px
-  }
-
-  .header-inner h1 {
-    flex: 1
   }
 
   .header-inner>.icon-button {

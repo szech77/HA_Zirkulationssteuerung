@@ -9,6 +9,7 @@ watch(() => props.state.entries.map(entry => entry.entry_id), ids => { if (!ids.
 </script>
 <template>
   <main class="page" id="settings">
+    <h1 class="visually-hidden">Einstellungen</h1>
     <section class="intro"><div><span class="eyebrow">DEIN SYSTEM. DEINE EINSTELLUNGEN.</span><h2>So passt es zu deinem Alltag.</h2><p class="subtext">Freigaben, Betriebsart und Geräte an einem Ort.</p></div><label v-if="state.entries.length > 1" class="field">System<select v-model="selected"><option v-for="entry in state.entries" :key="entry.entry_id" :value="entry.entry_id">{{ entry.title }}</option></select></label></section>
     <div v-if="state.error" class="error" role="alert">{{ state.error }} Deine Eingaben bleiben erhalten. <button class="secondary-button" @click="$emit('refresh')">Erneut versuchen</button></div>
     <p v-if="!state.entries.length" class="surface empty" role="status">{{ state.loading ? 'Konfiguration wird geladen …' : 'Kein geladenes System verfügbar.' }}</p>

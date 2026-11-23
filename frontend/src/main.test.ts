@@ -13,6 +13,35 @@ beforeAll(() => {
 afterAll(() => restoreDialog())
 afterEach(()=>{ document.body.replaceChildren(); vi.useRealTimers() })
 describe('HA custom panel bridge', () => {
+  it('opens the native HA sidebar through an edge swipe and removes its listener on unload', async () => {
+    const panel=document.createElement('warmwasser-panel') as WarmwasserPanel
+    panel.hass={callWS:vi.fn().mockResolvedValue({entries:[entry()]})}
+    document.body.append(panel); await flushPromises()
+    const viewport=panel.shadowRoot!.querySelector<HTMLElement>('.panel-viewport')!
+    const menu=vi.fn(); panel.addEventListener('hass-toggle-menu',menu)
+    const swipe=()=>{
+      for(const [type,x] of [['touchstart',8],['touchend',120]] as const){
+        const point={identifier:1,clientX:x,clientY:200}
+        const event=new Event(type,{bubbles:true,composed:true})
+        Object.defineProperties(event,{touches:{value:type==='touchstart'?[point]:[]},changedTouches:{value:[point]}})
+        viewport.dispatchEvent(event)
+      }
+    }
+    swipe()
+    expect(menu).toHaveBeenCalledTimes(1)
+    expect(menu.mock.calls[0][0]).toMatchObject({detail:{open:true},bubbles:true,composed:true})
+    panel.shadowRoot!.querySelector<HTMLButtonElement>('.menu-button')!.click()
+    expect(menu).toHaveBeenCalledTimes(2)
+    expect(menu.mock.calls[1][0].detail).toBeNull()
+    panel.remove();swipe();expect(menu).toHaveBeenCalledTimes(2)
+    document.body.append(panel);await flushPromises()
+    const reconnected=panel.shadowRoot!.querySelector<HTMLElement>('.panel-viewport')!
+    expect(reconnected).not.toBe(viewport)
+    // The old detached viewport cannot dispatch menu requests after reconnecting.
+    swipe();expect(menu).toHaveBeenCalledTimes(2)
+    panel.remove()
+  })
+
   it('starts when HA assigns panel metadata before hass and keeps working after metadata updates', async () => {
     vi.useFakeTimers()
     const panel = document.createElement('warmwasser-panel') as WarmwasserPanel
@@ -72,9 +101,10 @@ describe('HA custom panel bridge', () => {
     panel.hass={callWS}; document.body.append(panel); await flushPromises()
     const root=panel.shadowRoot!
     const configure=root.querySelector<HTMLAnchorElement>('a[href="/settings"]')!
-    panel.scrollTop=300
+    const viewport=root.querySelector<HTMLElement>('.panel-viewport')!
+    viewport.scrollTop=300
     configure.click(); await flushPromises()
-    expect(panel.scrollTop).toBe(0)
+    expect(viewport.scrollTop).toBe(0)
     const mode=Array.from(root.querySelectorAll<HTMLButtonElement>('.mode-option')).find(button=>button.textContent?.includes('Automatische Steuerung'))!; mode.click()
     await flushPromises()
     root.querySelector('form')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))

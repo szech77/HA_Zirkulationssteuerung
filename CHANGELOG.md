@@ -7,6 +7,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Features
 
+- Das native HA-Seitenmenü durch Wischen vom linken Panelrand nach rechts öffnen. Den zusätzlichen Ansichtsnamen samt Trennstrich aus der Titelleiste entfernen; aktive Navigation und zugängliche Seitenüberschriften erhalten.
 - Den freigegebenen Oberflächenentwurf als echte Vue-App umsetzen: feste Titelleiste, getrennte Übersicht und Einstellungsseite, kompakte echte Messwerte, Heatmap mit ein-/ausblendbaren Freigaben und Vorwärmläufen, reale Planung und Historienimport. Neutrale Anthrazit-/Grautöne im Darkmode verwenden; Entwürfe beim Routenwechsel und bei Verbindungsproblemen erhalten. Sensoren und Region über HAs native Auswahl erreichbar halten.
 - Pumpenlaufzeit frei in Minuten bis 1.440 Minuten (24 Stunden), einschließlich Dezimalwerten, sowie Tageslimit direkt im Panel speichern. Bestätigte laufende Endzeiten erhalten und längere Starts weiterhin vollständig an Freigabezeiten binden. Steuerungsdaten und native HA-Optionen auf dieselben wirksamen Grenzen abstimmen; Schema-/HA-Store-Version 3 mit automatischer Migration aus Version 1 und 2 ergänzen.
 - Freigabezeiten und gelernte Vorwärmläufe direkt in den vorhandenen sieben Heatmap-Zeilen markieren, einschließlich minutengenauer Zeitangaben und Legende. Die Planung auch im Monitoring bei ausgeschalteter Pumpensteuerung anzeigen, ohne die Steuerung zu aktivieren oder Schaltbefehle auszulösen. Für Anzeige und Steuerung dieselbe Wochenplanung mit Tageskontingent, Startabstand und Sommerzeitbehandlung verwenden.
@@ -24,6 +25,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Den nativen Scrollbereich in den Shadow-DOM-Inhalt des Panels verlegen, damit Mausrad und Zwei-Finger-Touchpad-Scrollen auch bei einem von HA begrenzten äußeren Custom-Element funktionieren. Feste Titelleiste, horizontales Scrollen der Heatmap und Zurücksetzen der Scrollposition beim Seitenwechsel erhalten; Browser-Regression mit echten Rad-Deltas in der CI ergänzen.
 - Den Frontend-Start unter Home Assistant reparieren: den internen Controller als echtes privates Feld führen, damit HAs öffentliche `panel`-Metadaten ihn nicht überschreiben. Den Start mit HA-Eigenschaften, spätere Metadatenänderungen und das Beenden des Pollings als Regression prüfen.
 - Den Python-Code in ein vollständig mit HACS ausgeliefertes `app/`-Paket mit API, Konfiguration, Modellen, Validierung, Fachservices, Speicher, Adaptern und Hilfsfunktionen aufteilen. HA-Einstiege, WebSocket-Namen, Speicherschlüssel erhalten; Tests nach Verantwortlichkeiten ordnen und isolierte Installationskopien prüfen.
 
