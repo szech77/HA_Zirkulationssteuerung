@@ -91,6 +91,11 @@
   .settings-nav button svg { display: block; }
   .settings-nav .nav-description { display: none; }
 }
+/* Keep the extra panel actions clear of navigation with wider Linux system fonts. */
+@media (min-width: 641px) and (max-width: 760px) {
+  .header-inner { column-gap: 8px; }
+  .header-actions .icon-button { width: 32px; height: 32px; }
+}
 @media (max-width: 640px) {
   .header-actions .icon-button { width: 38px; height: 38px; }
   .bottom-navigation { display: block; flex: 0 0 auto; z-index: 50; background: var(--surface); border-top: 1px solid var(--line); padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }

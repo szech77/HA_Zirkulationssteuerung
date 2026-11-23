@@ -26,6 +26,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Vor dem Dependency Review das Repository mit `actions/checkout` 5.1.0 (vollständiger Commit-Pin, ohne gespeicherte Zugangsdaten) auschecken, damit die lokale Prüfkonfiguration verfügbar ist. Den unbeabsichtigten Umbruch der Titelleiste bei 641–760 px mit breiteren Linux-Systemschriften durch kompaktere Aktionsbuttons und Abstände verhindern; die strengen Browserprüfungen erhalten.
 - Logo und Oberfläche farblich an EOS Energiezentrale angleichen: Türkis/Gold im Tropfenlogo sowie identische Hell-/Dunkelwerte für Flächen, Texte, Rahmen, Aktionen und Statusanzeigen. Die Heatmap aus den EOS-Akzentfarben ableiten und transparente HA-Brand-Dateien neu exportieren.
 - Den Menübutton mit drei horizontalen Strichen aus der Panel-Titelleiste entfernen. Das native HA-Seitenmenü weiterhin über die Wischgeste vom linken Rand öffnen.
 - Die Titelleiste als feste Layoutzeile außerhalb des scrollbaren Seiteninhalts halten. Die Panelhöhe auch bei unbestimmten HA-Elternhöhen begrenzen; Übersicht und Einstellungen bis zum Seitenende mit Mausrad und Touchpad prüfen.

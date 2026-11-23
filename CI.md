@@ -33,6 +33,10 @@ bekannte Schwachstelle mit mindestens hoher Schwere einführt. Die Konfiguration
 liegt in [.github/codeql/codeql-config.yml](./.github/codeql/codeql-config.yml) und
 [.github/dependency-review-config.yml](./.github/dependency-review-config.yml).
 
+Der Dependency-Review-Job checkt das Repository vor dem Lesen seiner lokalen
+Konfiguration aus; der Checkout ist auf Version 5.1.0 per vollständiger SHA
+festgelegt und speichert keine Zugangsdaten. Die Fehlerschwelle bleibt `high`.
+
 Zusätzlich müssen im Repository unter `Settings > Advanced Security` aktiviert
 werden:
 
