@@ -1,9 +1,6 @@
 # Changelog
 
-Alle bemerkenswerten Änderungen an diesem Projekt werden hier dokumentiert.
-Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
-
-## New Version
+## 0.2.0b45281106680 - 2026-11-23
 
 ### Features
 
@@ -33,7 +30,6 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 - Den nativen Scrollbereich in den Shadow-DOM-Inhalt des Panels verlegen, damit Mausrad und Zwei-Finger-Touchpad-Scrollen auch bei einem von HA begrenzten äußeren Custom-Element funktionieren. Feste Titelleiste, horizontales Scrollen der Heatmap und Zurücksetzen der Scrollposition beim Seitenwechsel erhalten; Browser-Regression mit echten Rad-Deltas in der CI ergänzen.
 - Den Frontend-Start unter Home Assistant reparieren: den internen Controller als echtes privates Feld führen, damit HAs öffentliche `panel`-Metadaten ihn nicht überschreiben. Den Start mit HA-Eigenschaften, spätere Metadatenänderungen und das Beenden des Pollings als Regression prüfen.
 - Den Python-Code in ein vollständig mit HACS ausgeliefertes `app/`-Paket mit API, Konfiguration, Modellen, Validierung, Fachservices, Speicher, Adaptern und Hilfsfunktionen aufteilen. HA-Einstiege, WebSocket-Namen, Speicherschlüssel erhalten; Tests nach Verantwortlichkeiten ordnen und isolierte Installationskopien prüfen.
-
 - Das Frontend in `assets`, `components`, `composables`, `views`, `router` und `stores` mit `App.vue` als Wurzel aufteilen. HA-Verbindung/Polling und Dashboard-Zustand in eigene Module auslagern; Tests, SVG-Quellen, Styles und Imports entsprechend zuordnen. `vue-router` 4.6.4 exakt gepinnt für interne Memory-Routen ergänzen, ohne HAs äußere URL zu ändern. Router und Zustand pro Panel-Instanz isolieren und alte Antworten nach Wiederverbindung verwerfen.
 - Die Manifest-Schlüssel nach `domain`, `name` und anschließend alphabetisch sortieren. Den festen `holidays==0.109`-Pin in Manifest und Python-Projekt durch `holidays>=0.108` ersetzen, damit die mit Home Assistant 2026.11.2 geteilte Version 0.108 zulässig ist und spätere HA-Updates nicht durch einen exakten Pin blockiert werden. Die Mindestversion 0.108 in der Testumgebung festlegen und die Feiertagsfunktionen damit prüfen.
 - Das Projektlogo im Dashboard-Kopf und sein Motiv als natives HA-Seitenleisten-Icon anzeigen. Die Dashboard-Variante nach der Home-Assistant-Themeneinstellung wechseln; das kleine Icon-Modul unabhängig vom Öffnen des Panels laden und bei Entladen des letzten Eintrags aus den Frontend-Ressourcen entfernen.
