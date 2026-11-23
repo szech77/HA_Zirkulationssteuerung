@@ -10,12 +10,19 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .calendar import supported_subdivisions, GERMAN_REGIONS
-from .configuration import entry_configuration, validate_configuration
-from .const import (
-    CONF_BUFFER_SENSOR, CONF_FLOW_SENSOR, CONF_MAX_STARTS, CONF_PUMP_ENTITY,
-    CONF_RUNTIME_SECONDS, DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS, DOMAIN,
-    MAX_DAILY_STARTS, MAX_RUNTIME_SECONDS,
+from .app.core.calendar import supported_subdivisions, GERMAN_REGIONS
+from .app.core.config import entry_configuration, validate_configuration
+from .app.core.const import (
+    CONF_BUFFER_SENSOR,
+    CONF_FLOW_SENSOR,
+    CONF_MAX_STARTS,
+    CONF_PUMP_ENTITY,
+    CONF_RUNTIME_SECONDS,
+    DEFAULT_MAX_STARTS,
+    DEFAULT_RUNTIME_SECONDS,
+    DOMAIN,
+    MAX_DAILY_STARTS,
+    MAX_RUNTIME_SECONDS,
 )
 
 

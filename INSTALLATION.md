@@ -36,10 +36,11 @@ Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen ID
    Release-Tags enthalten die gebauten Dateien bereits. Danach den Ordner
    `custom_components/warmwasser_zirkulation/` in das Verzeichnis
    `<config>/custom_components/warmwasser_zirkulation/` kopieren.
-2. Prüfen, dass unter anderem `manifest.json`, `config_flow.py`, `coordinator.py`,
+2. Prüfen, dass unter anderem `manifest.json`, `config_flow.py`, der vollständige Ordner `app/` mit `app/main.py`,
    `sensor.py`, `switch.py`, `brand/icon.png`, `brand/icon@2x.png`,
    `brand/dark_icon.png`, `brand/dark_icon@2x.png`, `icons.js`, `web/panel.js` und
-   `web/panel.css` vorhanden sind.
+   `web/panel.css` vorhanden sind. Bei einem Update den Integrationsordner vollständig ersetzen,
+   statt neue Dateien über alte Python-Module zu kopieren. Die `.storage`-Daten bleiben erhalten.
 3. Home Assistant neu starten.
 4. Die Integration über die Geräte-&-Dienste-Seite hinzufügen.
 

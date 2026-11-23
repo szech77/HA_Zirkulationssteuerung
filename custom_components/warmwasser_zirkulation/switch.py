@@ -3,7 +3,7 @@
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .app.core.const import DOMAIN
 
 
 async def async_setup_entry(hass, entry, async_add_entities):

@@ -13,13 +13,13 @@ nicht erfunden werden.
 
 ## Architektur
 
-- `custom_components/warmwasser_zirkulation/domain.py`
+- `custom_components/warmwasser_zirkulation/app/services/` und `app/models/`
   - reine Fachlogik ohne Home-Assistant-Importe
   - Erkennung, Lernen, Heatmap und Planung
   - bevorzugt deterministische, testbare Funktionen und unveränderliche Datenmodelle
-- `custom_components/warmwasser_zirkulation/coordinator.py`
-  - Grenze zu Home Assistant
-  - Orchestrierung, Persistenz, Pumpen-Gateway und strukturiertes Logging
+- `custom_components/warmwasser_zirkulation/app/services/coordinator.py`
+  - serialisierte Orchestrierung über die Verträge aus `app/models/contracts.py`
+  - HA-Grenzen in `app/adapters/`, Speicher und Migrationen in `app/db/`
   - Fehlerzustände müssen fail-closed behandelt werden
 - `config_flow.py`, `sensor.py`, `switch.py`
   - dünne Home-Assistant-Adapter
@@ -29,8 +29,10 @@ nicht erfunden werden.
   - Build mit Vite
 - `dashboard/`
   - Lovelace-Konfiguration
+- `app/api/`, `app/core/`, `app/schemas/`, `app/utils/`
+  - Endpunkte, Konfiguration, Validierung und technische Hilfsfunktionen
 - `tests/`
-  - fachliche Tests mit synthetischen Zeitreihen
+  - gespiegelte Bereiche mit synthetischen Zeitreihen; gemeinsame Fixtures in `conftest.py`
 
 ## Entwicklungsumgebung
 

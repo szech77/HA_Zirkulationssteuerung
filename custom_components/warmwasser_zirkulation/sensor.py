@@ -2,8 +2,8 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
-from .status import entry_status
+from .app.core.const import DOMAIN
+from .app.api.status import entry_status
 
 
 async def async_setup_entry(hass, entry, async_add_entities):

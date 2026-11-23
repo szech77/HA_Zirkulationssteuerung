@@ -6,14 +6,18 @@ innerhalb konfigurierter Freigabezeiten bedarfsabhängige Schaltbefehle.
 
 ## Architektur
 
-* `custom_components/warmwasser_zirkulation/domain.py` enthält reine Fachlogik für
-  Erkennung, Lernen, Heatmap und Planung.
-* `coordinator.py` verbindet Fachlogik, HA-Zustände, Persistenz und Aktorik.
-  `recorder.py` liest vorhandene HA-Historie zum Lernstart; eine InfluxDB-Anbindung
-  ist derzeit nicht implementiert.
-* `sensor.py` und `switch.py` sind dünne HA-Adapter. Keine produktiven Entity-IDs oder
-  Zugangsdaten werden erfunden; alle Identitäten bleiben konfigurierbar.
-* `observations.py` sammelt Live-Beobachtungen für die begrenzte Heatmap-Historie und ruft die serialisierte Steuerung browserunabhängig auf.
+* `custom_components/warmwasser_zirkulation/app/` gliedert den Python-Code in
+  `api`, `core`, `models`, `schemas`, `services`, `db`, `adapters` und `utils`.
+  Erkennung, Lernen und Planung bleiben unabhängig von Home Assistant testbar.
+* `app/main.py` koordiniert den HA-Lebenszyklus; `app/services/coordinator.py`
+  serialisiert Steuerung und Einstellungen. Die von HA geladenen Einstiegsdateien
+  `__init__.py`, `config_flow.py`, `sensor.py` und `switch.py` bleiben im Integrationsordner.
+* `app/db/` enthält HAs Speicherschnittstellen, versionierte Migrationen und den
+  lesenden Recorder-Zugriff. Eine InfluxDB-Anbindung ist derzeit nicht implementiert.
+* `app/adapters/observations.py` sammelt Live-Beobachtungen und ruft die Steuerung
+  browserunabhängig auf; `app/api/` liefert die geschützte Dashboard-API.
+* Die gespiegelten Bereiche unter `tests/` prüfen Fachlogik, Adapter, API und Speicher.
+  Die vollständige Python-Struktur steht in [CONTRIBUTING.md](./CONTRIBUTING.md#python-struktur).
 * `frontend/src/` enthält das Vue-3-Panel mit `App.vue`, `views`, `components`,
   `composables`, `router`, `stores` und `assets`. Die Verzeichnisaufteilung steht in
   [CONTRIBUTING.md](./CONTRIBUTING.md#frontend-struktur).

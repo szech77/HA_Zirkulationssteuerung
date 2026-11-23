@@ -22,6 +22,8 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Den Python-Code in ein vollständig mit HACS ausgeliefertes `app/`-Paket mit API, Konfiguration, Modellen, Validierung, Fachservices, Speicher, Adaptern und Hilfsfunktionen aufteilen. HA-Einstiege, WebSocket-Namen, Speicherschlüssel und Schema-Version erhalten; Tests nach Verantwortlichkeiten ordnen und isolierte Installationskopien prüfen.
+
 - Das Frontend in `assets`, `components`, `composables`, `views`, `router` und `stores` mit `App.vue` als Wurzel aufteilen. HA-Verbindung/Polling und Dashboard-Zustand in eigene Module auslagern; Tests, SVG-Quellen, Styles und Imports entsprechend zuordnen. `vue-router` 4.6.4 exakt gepinnt für interne Memory-Routen ergänzen, ohne HAs äußere URL zu ändern. Router und Zustand pro Panel-Instanz isolieren und alte Antworten nach Wiederverbindung verwerfen.
 - Die Manifest-Schlüssel nach `domain`, `name` und anschließend alphabetisch sortieren. Den festen `holidays==0.109`-Pin in Manifest und Python-Projekt durch `holidays>=0.108` ersetzen, damit die mit Home Assistant 2026.11.2 geteilte Version 0.108 zulässig ist und spätere HA-Updates nicht durch einen exakten Pin blockiert werden. Die Mindestversion 0.108 in der Testumgebung festlegen und die Feiertagsfunktionen damit prüfen.
 - Das Projektlogo im Dashboard-Kopf und sein Motiv als natives HA-Seitenleisten-Icon anzeigen. Die Dashboard-Variante nach der Home-Assistant-Themeneinstellung wechseln; das kleine Icon-Modul unabhängig vom Öffnen des Panels laden und bei Entladen des letzten Eintrags aus den Frontend-Ressourcen entfernen.
