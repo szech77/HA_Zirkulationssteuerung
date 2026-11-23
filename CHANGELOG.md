@@ -22,6 +22,7 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Bugfixes
 
+- Den Frontend-Start unter Home Assistant reparieren: den internen Controller als echtes privates Feld führen, damit HAs öffentliche `panel`-Metadaten ihn nicht überschreiben. Den Start mit HA-Eigenschaften, spätere Metadatenänderungen und das Beenden des Pollings als Regression prüfen.
 - Den Python-Code in ein vollständig mit HACS ausgeliefertes `app/`-Paket mit API, Konfiguration, Modellen, Validierung, Fachservices, Speicher, Adaptern und Hilfsfunktionen aufteilen. HA-Einstiege, WebSocket-Namen, Speicherschlüssel und Schema-Version erhalten; Tests nach Verantwortlichkeiten ordnen und isolierte Installationskopien prüfen.
 
 - Das Frontend in `assets`, `components`, `composables`, `views`, `router` und `stores` mit `App.vue` als Wurzel aufteilen. HA-Verbindung/Polling und Dashboard-Zustand in eigene Module auslagern; Tests, SVG-Quellen, Styles und Imports entsprechend zuordnen. `vue-router` 4.6.4 exakt gepinnt für interne Memory-Routen ergänzen, ohne HAs äußere URL zu ändern. Router und Zustand pro Panel-Instanz isolieren und alte Antworten nach Wiederverbindung verwerfen.

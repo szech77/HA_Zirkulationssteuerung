@@ -4,6 +4,29 @@ import { WarmwasserPanel } from './main'
 import { entry } from './test/fixtures'
 afterEach(()=>{ document.body.replaceChildren(); vi.useRealTimers() })
 describe('HA custom panel bridge', () => {
+  it('starts when HA assigns panel metadata before hass and keeps working after metadata updates', async () => {
+    vi.useFakeTimers()
+    const panel = document.createElement('warmwasser-panel') as WarmwasserPanel
+    const metadata = {
+      component_name: 'custom', url_path: 'warmwasser-zirkulation',
+      config: { _panel_custom: { name: 'warmwasser-panel', embed_iframe: false } },
+    }
+    // ha-panel-custom supplies these public properties before appending the element.
+    Object.assign(panel, {
+      panel: metadata, hass: { callWS: vi.fn().mockResolvedValue({ entries: [entry()] }) },
+      narrow: false, route: { path: '', prefix: '/warmwasser-zirkulation' },
+    })
+    document.body.append(panel)
+    await flushPromises()
+    expect(panel.shadowRoot!.textContent).toContain('Test-Zirkulation')
+    expect(Reflect.get(panel, 'panel')).toBe(metadata)
+    Object.assign(panel, { panel: { ...metadata, title: 'Updated panel' }, narrow: true })
+    await panel.refresh()
+    await flushPromises()
+    expect(panel.shadowRoot!.textContent).toContain('Test-Zirkulation')
+    panel.remove()
+    expect(vi.getTimerCount()).toBe(0)
+  })
   it('registers a custom element, loads through HA auth and cleans up on disconnect', async () => {
     vi.useFakeTimers()
     expect(customElements.get('warmwasser-panel')).toBe(WarmwasserPanel)

@@ -116,6 +116,11 @@ Store. Der Store verwendet Vues `reactive`; `useHomeAssistantPanel` kapselt die
 von HA bereitgestellte authentifizierte Verbindung. Beim Entladen werden Polling
 und ausstehende UI-Aktualisierungen beendet beziehungsweise verworfen.
 
+Die Custom-Element-Eigenschaften `panel`, `hass`, `route` und `narrow` gehören
+Home Assistant. Interne Controller in echten privaten JavaScript-Feldern halten,
+damit die Metadatenzuweisung beim Panel-Start sie nicht überschreibt. Brückentests
+müssen die HA-Eigenschaften vor dem Einhängen des Elements setzen.
+
 Komponententests liegen neben ihren Komponenten, Router-/Store-/Composable-Tests
 neben den jeweiligen Modulen. Die bestehenden VS-Code-Tasks führen weiterhin
 alle Tests ab dem Ordner `frontend/` aus. Backend-Berechnungen, Persistenz und

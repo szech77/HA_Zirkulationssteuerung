@@ -8,9 +8,10 @@ import './assets/styles/panel.css'
 // The custom-element bridge only mounts Vue and forwards the HA connection.
 export class WarmwasserPanel extends HTMLElement {
   private app: VueApp | null = null
-  private readonly panel = useHomeAssistantPanel()
+  // HA owns public panel/hass/route/narrow properties on this custom element.
+  readonly #controller = useHomeAssistantPanel()
 
-  set hass(value: HomeAssistant) { this.panel.setHass(value) }
+  set hass(value: HomeAssistant) { this.#controller.setHass(value) }
 
   connectedCallback() {
     if (this.app) return
@@ -23,26 +24,26 @@ export class WarmwasserPanel extends HTMLElement {
     root.append(stylesheet, target)
     const router = createPanelRouter()
     this.app = createApp(App, {
-      state: this.panel.state, saveSettings: this.panel.configure, importHistory: this.panel.importHistory,
-      onRefresh: () => void this.panel.refresh(),
+      state: this.#controller.state, saveSettings: this.#controller.configure, importHistory: this.#controller.importHistory,
+      onRefresh: () => void this.#controller.refresh(),
       onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })),
     })
     this.app.use(router)
     this.app.mount(target)
     void router.replace({ name: 'dashboard' })
-    this.panel.connect()
+    this.#controller.connect()
   }
 
   disconnectedCallback() {
-    this.panel.disconnect()
+    this.#controller.disconnect()
     this.app?.unmount()
     this.app = null
   }
 
-  refresh() { return this.panel.refresh() }
+  refresh() { return this.#controller.refresh() }
   configure(entryId: string, settings: ControlSettings, revision: number) {
-    return this.panel.configure(entryId, settings, revision)
+    return this.#controller.configure(entryId, settings, revision)
   }
-  importHistory(entryId: string) { return this.panel.importHistory(entryId) }
+  importHistory(entryId: string) { return this.#controller.importHistory(entryId) }
 }
 if (!customElements.get('warmwasser-panel')) customElements.define('warmwasser-panel', WarmwasserPanel)
