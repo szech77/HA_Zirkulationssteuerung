@@ -4,6 +4,7 @@ import { useHomeAssistantPanel } from './composables/useHomeAssistantPanel'
 import { useSidebarSwipe } from './composables/useSidebarSwipe'
 import { createPanelRouter } from './router'
 import type { ControlSettings, HomeAssistant } from './types'
+import './assets/styles/theme.css'
 import './assets/styles/panel.css'
 
 // The custom-element bridge only mounts Vue and forwards the HA connection.

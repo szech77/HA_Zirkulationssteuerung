@@ -29,48 +29,6 @@
 
 .app-shell {
   font-family: Inter, "Segoe UI", Arial, sans-serif;
-  color-scheme: light;
-  --bg: #f4f6f5;
-  --surface: #fff;
-  --soft: #f7f9f8;
-  --ink: #20332f;
-  --muted: #6d7d76;
-  --line: #e3e9e6;
-  --accent: #25796b;
-  --accent-soft: #eaf4ef;
-  --orange: #bd7840;
-  --orange-soft: #fcf1e5;
-  --heat0: #edf1ee;
-  --heat1: #dbe8e0;
-  --heat2: #b8d4c3;
-  --heat3: #7fb59b;
-  --heat4: #41866e;
-  --heat5: #22644e;
-  --header: rgba(255, 255, 255, .97)
-}
-
-.app-shell[data-theme=dark] {
-  color-scheme: dark;
-  --bg: #111419;
-  --surface: #1a1e25;
-  --soft: #20252d;
-  --ink: #e8edf3;
-  --muted: #a1aab7;
-  --line: #303640;
-  --accent: #83b7d5;
-  --accent-soft: #223442;
-  --orange: #ecb47d;
-  --orange-soft: #392e23;
-  --heat0: #23382f;
-  --heat1: #2b4939;
-  --heat2: #3c664c;
-  --heat3: #508a66;
-  --heat4: #72ad87;
-  --heat5: #a0cead;
-  --header: rgba(26, 30, 37, .97)
-}
-
-.app-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -208,8 +166,8 @@ h1 {
 }
 
 .header-inner nav a.active {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--ink);
+  background: var(--soft);
   font-weight: 600
 }
 
@@ -328,7 +286,7 @@ select option {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 4px 24px #17392c04
+  box-shadow: 0 4px 24px rgb(16 21 29 / .02)
 }
 
 .status-banner {
@@ -419,16 +377,16 @@ select option {
 }
 
 .status-banner.warning .status-label {
-  color: var(--orange)
+  color: var(--warn)
 }
 
 .status-banner.warning .status-dot {
-  background: var(--orange)
+  background: var(--warn)
 }
 
 .status-banner.warning .status-illustration {
-  background: var(--orange-soft);
-  color: var(--orange)
+  background: var(--warn-bg);
+  color: var(--warn)
 }
 
 .status-banner.monitor .status-label {
@@ -632,7 +590,7 @@ select option {
 
 .permission {
   height: 3px;
-  background: #538c9c;
+  background: var(--accent);
   position: absolute;
   bottom: 1px;
   left: 0;
@@ -680,7 +638,7 @@ select option {
 .line-key {
   width: 13px;
   height: 3px;
-  background: #538c9c;
+  background: var(--accent);
   border-radius: 2px
 }
 
@@ -1135,7 +1093,7 @@ select option {
   background: var(--header);
   border: 1px solid var(--line);
   backdrop-filter: blur(12px);
-  box-shadow: 0 6px 26px #102b1510;
+  box-shadow: 0 6px 26px rgb(16 21 29 / .06);
   border-radius: 10px;
   margin-top: 21px;
   padding: 14px 18px;
@@ -1169,9 +1127,9 @@ select option {
 }
 
 .primary-button {
-  background: var(--ink);
-  color: var(--surface);
-  border: 1px solid var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent);
   padding: 9px 15px;
   border-radius: 7px;
   font-size: 11px;
@@ -1344,7 +1302,7 @@ select option {
 }
 
 .error-message {
-  color: #b35b46;
+  color: var(--crit);
   font-size: 11px;
   padding: 12px 0 2px
 }
@@ -1401,7 +1359,7 @@ dialog {
 }
 
 dialog::backdrop {
-  background: #12262066;
+  background: rgb(16 21 29 / .4);
   backdrop-filter: blur(3px)
 }
 
@@ -2090,8 +2048,8 @@ dialog .primary-button {
 }
 
 .error {
-  border: 1px solid #b868514f;
-  background: var(--orange-soft);
+  border: 1px solid var(--crit);
+  background: var(--crit-bg);
   color: var(--ink);
   padding: 15px 18px;
   border-radius: 9px;
@@ -2306,11 +2264,11 @@ fieldset {
 
 .heatmap .no-data {
   background: var(--soft);
-  background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, #8b97a91b 3px, #8b97a91b 4px)
+  background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, color-mix(in srgb, var(--muted) 10%, transparent) 3px, color-mix(in srgb, var(--muted) 10%, transparent) 4px)
 }
 
 .heatmap .provisional {
-  background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, #a9afb866 3px, #a9afb866 4px)
+  background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, color-mix(in srgb, var(--muted) 40%, transparent) 3px, color-mix(in srgb, var(--muted) 40%, transparent) 4px)
 }
 
 .heatmap .allowed-window, .heatmap .planned-run {
@@ -2324,7 +2282,7 @@ fieldset {
 .allowed-window {
   height: 3px;
   bottom: 1px;
-  background: #538c9c
+  background: var(--accent)
 }
 
 .planned-run {
@@ -2371,7 +2329,7 @@ fieldset {
 
 .legend .legend-allowed {
   height: 3px !important;
-  background: #538c9c
+  background: var(--accent)
 }
 
 .legend .legend-planned {
@@ -2435,8 +2393,8 @@ fieldset {
 }
 
 .history-status button {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--accent);
+  color: var(--on-accent);
   border-radius: 7px;
   padding: 10px 14px;
   font-size: 12px
@@ -2528,26 +2486,17 @@ fieldset {
   }
 }
 
-.app-shell[data-theme=dark] {
-  --heat0: #242a33;
-  --heat1: #2d3c4e;
-  --heat2: #405a73;
-  --heat3: #557a9c;
-  --heat4: #76a1c2;
-  --heat5: #a5c6e0
-}
-
 .status-banner.error-state .status-label {
-  color: #c46b5c
+  color: var(--crit)
 }
 
 .status-banner.error-state .status-dot {
-  background: #c46b5c
+  background: var(--crit)
 }
 
 .status-banner.error-state .status-illustration {
-  color: #c46b5c;
-  background: var(--orange-soft)
+  color: var(--crit);
+  background: var(--crit-bg)
 }
 
 .app-shell[data-theme=dark] .surface { box-shadow: none; }

@@ -1,0 +1,61 @@
+/* EOS palette, source commit 7e1717b74c96156b95762fbcf98e815610ffe1d0.
+   See branding/README.md for source links and the semantic mapping. */
+.app-shell {
+  color-scheme: light;
+  --brand-turquoise: #55c7cb;
+  --brand-gold: #ffcb62;
+  --bg: #eef2f6;
+  --surface: #fff;
+  --surface2: #f4f7fb;
+  --ink: #162231;
+  --dim: #4f6075;
+  --edge: #d4dee9;
+  --accent: #185da4;
+  --solar: #956400;
+  --heat: #a54723;
+  --ok: #277448;
+  --ok-bg: #e3f3e9;
+  --warn: #8a5a00;
+  --warn-bg: #fff3d6;
+  --crit: #b42318;
+  --crit-bg: #fde8e6;
+  --info: #185da4;
+  --info-bg: #e4effb;
+  --on-accent: #fff;
+  --soft: var(--surface2);
+  --muted: var(--dim);
+  --line: var(--edge);
+  --accent-soft: var(--info-bg);
+  --orange: var(--heat);
+  --orange-soft: var(--warn-bg);
+  --header: var(--surface);
+  /* The circulation-specific scale is derived from the EOS accent. */
+  --heat0: var(--surface2);
+  --heat1: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+  --heat2: color-mix(in srgb, var(--accent) 40%, var(--surface2));
+  --heat3: color-mix(in srgb, var(--accent) 60%, var(--surface2));
+  --heat4: color-mix(in srgb, var(--accent) 80%, var(--surface2));
+  --heat5: var(--accent);
+}
+
+.app-shell[data-theme=dark] {
+  color-scheme: dark;
+  --bg: #10151d;
+  --surface: #181f2a;
+  --surface2: #202938;
+  --ink: #eef4fc;
+  --dim: #a7b6ca;
+  --edge: #303c50;
+  --accent: #8ec5ff;
+  --solar: #ffcb62;
+  --heat: #ffac83;
+  --ok: #75dba0;
+  --ok-bg: #16302a;
+  --warn: #ffd27a;
+  --warn-bg: #33290f;
+  --crit: #ff8a80;
+  --crit-bg: #3a1a1a;
+  --info: #8ec5ff;
+  --info-bg: #172a40;
+  --on-accent: #0b1420;
+}

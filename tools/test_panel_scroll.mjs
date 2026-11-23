@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { access, mkdtemp, readFile, realpath, rm } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
@@ -168,8 +168,30 @@ try {
   assert.ok(await evaluate('viewport.scrollTop>0'), 'Vertical touch swipe keeps native scrolling')
   await swipe([[180,350],[220,350],[260,350],[300,350]])
   assert.equal(await evaluate('sidebarEvents.length'), 2, 'Vertical and ordinary content swipes do not open menu')
+  // The visual contract uses the exact EOS light/dark surface and action colors.
+  for (const [width,height,mobile] of [[1280,900,false],[390,844,true]]) {
+    await command('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile})
+    for (const [index,page] of [[0,'overview'],[1,'settings']]) {
+      await evaluate(`root.querySelectorAll('nav a')[${index}].click();viewport.scrollTop=0`)
+      for (const [theme,bg,ink,accent,onAccent] of [
+        ['light','rgb(238, 242, 246)','rgb(22, 34, 49)','rgb(24, 93, 164)','rgb(255, 255, 255)'],
+        ['dark','rgb(16, 21, 29)','rgb(238, 244, 252)','rgb(142, 197, 255)','rgb(11, 20, 32)']]) {
+        await evaluate(`if(root.querySelector('.app-shell').dataset.theme!==${JSON.stringify(theme)})root.querySelector('.theme-button').click()`)
+        await until(() => evaluate(`root.querySelector('.app-shell').dataset.theme===${JSON.stringify(theme)} && root.querySelector('main').id===${JSON.stringify(index===0?'overview':'settings')}`), 'theme and route rendering')
+        const colors=await evaluate("(()=>{const shell=getComputedStyle(root.querySelector('.app-shell')),button=root.querySelector('.primary-button');return{background:shell.backgroundColor,text:shell.color,button:button?getComputedStyle(button).backgroundColor:null,onButton:button?getComputedStyle(button).color:null}})()")
+        assert.equal(colors.background,bg, `EOS ${theme} background`)
+        assert.equal(colors.text,ink, `EOS ${theme} foreground`)
+        if(index===1){assert.equal(colors.button,accent);assert.equal(colors.onButton,onAccent)}
+        if(process.env.CIRCULATION_REVIEW_DIR){
+          await mkdir(process.env.CIRCULATION_REVIEW_DIR,{recursive:true})
+          const capture=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false})
+          await writeFile(join(process.env.CIRCULATION_REVIEW_DIR,`${page}-${theme}-${width}.png`),Buffer.from(capture.data,'base64'))
+        }
+      }
+    }
+  }
   assert.deepEqual(exceptions, [])
-  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells and native sidebar touch gestures.')
+  console.log('Browser scroll checks passed: mouse wheel, fractional touchpad deltas, narrow layout, heatmap axes, route reset, fixed header through page end in full/offset/auto-height HA shells, native sidebar touch gestures and exact EOS theme colors.')
 } finally {
   if (socket?.readyState === WebSocket.OPEN) { await command('Browser.close').catch(() => {}); socket.close() }
   if (browser && browser.exitCode === null) {
