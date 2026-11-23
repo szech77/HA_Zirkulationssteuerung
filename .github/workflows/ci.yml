@@ -1,0 +1,262 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**", "bug/**", "bugfix/**"]
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  tests:
+    name: Python and Vue tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Python test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[test]" -r requirements-ha-test.txt
+      - name: Verify native Home Assistant test runtime
+        if: matrix.python-version == '3.14'
+        run: python -c "from homeassistant.const import __version__; print('Testing Home Assistant', __version__)"
+      - name: Compile Python sources
+        run: python -m compileall -q custom_components tests tools
+      - name: Run Python tests with coverage
+        run: >-
+          python -m pytest -q
+          --cov=custom_components.warmwasser_zirkulation
+          --cov-branch
+          --cov-report=term-missing
+          --cov-report=xml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+      - name: Collect frontend coverage
+        working-directory: frontend
+        run: npm run test:coverage
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: npm run audit
+      - name: Build Vue frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Verify native panel scrolling and sidebar swipe in Chrome
+        if: matrix.python-version == '3.14'
+        working-directory: frontend
+        run: npm run test:browser
+
+  security:
+    name: Source security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install security tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[security]" -r requirements-ha-test.txt
+      - name: Install frontend dependencies for npm audit
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run Bandit and create JSON report
+        id: bandit
+        continue-on-error: true
+        run: python -m bandit -r custom_components tools -ll -f json -o bandit.json
+      - name: Convert Bandit report to SARIF
+        if: always() && hashFiles('bandit.json') != ''
+        run: python tools/security_reports.py bandit bandit.json bandit.sarif
+      - name: Upload Bandit results to code scanning
+        if: always() && hashFiles('bandit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+      - name: Run pip-audit and create JSON report
+        id: pip_audit
+        continue-on-error: true
+        run: python -m pip_audit --skip-editable --format json --output pip-audit.json
+      - name: Convert pip-audit report to SARIF
+        if: always() && hashFiles('pip-audit.json') != ''
+        run: python tools/security_reports.py pip-audit pip-audit.json pip-audit.sarif
+      - name: Upload pip-audit results to code scanning
+        if: always() && hashFiles('pip-audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: pip-audit.sarif
+          category: pip-audit
+      - name: Run npm audit and create JSON report
+        id: npm_audit
+        continue-on-error: true
+        working-directory: frontend
+        run: npm audit --audit-level=high --json > ../npm-audit.json
+      - name: Convert npm audit report to SARIF
+        if: always() && hashFiles('npm-audit.json') != ''
+        run: python tools/security_reports.py npm-audit npm-audit.json npm-audit.sarif
+      - name: Upload npm audit results to code scanning
+        if: always() && hashFiles('npm-audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: npm-audit.sarif
+          category: npm-audit
+      - name: Enforce security scan results
+        if: always()
+        env:
+          BANDIT_RESULT: ${{ steps.bandit.outcome }}
+          PIP_AUDIT_RESULT: ${{ steps.pip_audit.outcome }}
+          NPM_AUDIT_RESULT: ${{ steps.npm_audit.outcome }}
+        run: |
+          test "$BANDIT_RESULT" = success
+          test "$PIP_AUDIT_RESULT" = success
+          test "$NPM_AUDIT_RESULT" = success
+
+  integration:
+    name: Home Assistant and HACS metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Run Hassfest validation
+        uses: home-assistant/actions/hassfest@master
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          # HACS liest die Lizenz über die GitHub-API vom Default-Branch (main).
+          # Außerhalb von main (Branches, PRs) wird die Lizenzprüfung daher
+          # übersprungen; auf main selbst bleibt sie verpflichtend.
+          ignore: ${{ github.ref == 'refs/heads/main' && 'brands' || 'brands license' }}
+
+  release_metadata:
+    name: Release metadata
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/bug/') || startsWith(github.ref, 'refs/heads/bugfix/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Validate draft and calculate release version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'stable' || 'beta' }}
+          BUILD: ${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: >-
+          python tools/release.py plan
+          --repository "$REPOSITORY" --channel "$CHANNEL"
+          --beta-number "$BUILD" --branch "$BRANCH"
+
+  required:
+    name: Required checks
+    needs: [tests, security, integration, release_metadata]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require successful tests and validation
+        env:
+          TESTS: ${{ needs.tests.result }}
+          SECURITY: ${{ needs.security.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          RELEASE: ${{ needs.release_metadata.result }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          test "$TESTS" = success
+          test "$SECURITY" = success
+          test "$INTEGRATION" = success
+          if [ "$EVENT" = push ]; then
+            test "$RELEASE" = success
+          else
+            test "$RELEASE" = skipped
+          fi
+
+  publish:
+    name: Publish stable or beta HACS release
+    needs: required
+    if: >-
+      !cancelled() && needs.required.result == 'success' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') ||
+      startsWith(github.ref, 'refs/heads/bug/') || startsWith(github.ref, 'refs/heads/bugfix/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'stable-release' || 'beta-release' }}
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.22.2"
+      - name: Build the Vue bundle from the approved source
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Publish immutable approved release snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'stable' || 'beta' }}
+          BUILD: ${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+        run: >-
+          python tools/release.py publish
+          --repository "$REPOSITORY" --commit "$COMMIT"
+          --channel "$CHANNEL" --beta-number "$BUILD" --branch "$BRANCH"

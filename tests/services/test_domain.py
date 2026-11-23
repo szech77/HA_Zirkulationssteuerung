@@ -1,8 +1,15 @@
 from datetime import datetime, timedelta, timezone
 
-from custom_components.warmwasser_zirkulation.domain import (
-    DetectionEngine, DetectorConfig, DrawEvent, LearningModel, Planner, PumpState, Sample, Window, heatmap,
+from custom_components.warmwasser_zirkulation.app.services.detection import DetectionEngine
+from custom_components.warmwasser_zirkulation.app.models.detection import (
+    DetectorConfig,
+    DrawEvent,
+    LearningModel,
+    PumpState,
+    Sample,
 )
+from custom_components.warmwasser_zirkulation.app.services.planning import Planner, heatmap
+from custom_components.warmwasser_zirkulation.app.models.planning import Window
 
 
 def ts(minutes=0):

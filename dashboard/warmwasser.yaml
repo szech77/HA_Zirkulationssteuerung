@@ -3,9 +3,8 @@ views:
   - title: Zirkulation
     path: warmwasser-zirkulation
     cards:
-      - type: custom:vue-warmwasser-dashboard
-        entity: sensor.warmwasser_zirkulation_reason
-        demand_automation: switch.warmwasser_demand_automation
-        flow_sensor: sensor.zirkulation_vorlauf
-        buffer_sensor: sensor.warmwassertemperatur
+      - type: markdown
+        content: >-
+          [Warmwasser-Dashboard öffnen](/warmwasser-zirkulation)
 
+          Das native Panel erscheint für Administratoren auch direkt in der HA-Seitenleiste.

@@ -1,0 +1,8 @@
+name: warmwasser-zirkulation
+
+paths-ignore:
+  - frontend/dist
+  - frontend/node_modules
+  - frontend/coverage
+  - coverage.xml
+  - .venv

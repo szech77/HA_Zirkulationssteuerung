@@ -3,12 +3,21 @@ name = "ha-warmwasser-zirkulation"
 version = "0.1.0"
 description = "Lernende Home-Assistant-Integration für Warmwasserzirkulation"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["holidays>=0.108"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 test = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+]
+security = [
+    "bandit>=1.8",
+    "pip-audit>=2.7",
 ]
 
 [tool.pytest.ini_options]
@@ -16,6 +25,11 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["custom_components*"]
+namespaces = true
 
 [tool.ruff]
 line-length = 100
