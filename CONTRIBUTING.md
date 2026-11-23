@@ -47,14 +47,17 @@ Neue Fachlogik braucht Tests für Normalfall, Grenzwerte und Fehlerfälle. Neue 
 geänderte Vue-Komponenten brauchen Vitest- und Vue-Test-Utils-Tests.
 
 Die Konfigurationsvalidierung und die Vollständigkeit der deutschen/englischen
-Texte werden ohne HA-Laufzeit geprüft. `tests/test_config_flow.py` prüft zusätzlich
-native HA-Selektoren und den Optionsdialog, wenn Home Assistant in der verwendeten
+Texte werden ohne HA-Laufzeit geprüft. `tests/test_config_flow.py` und `tests/test_native_panel.py` prüfen zusätzlich
+native HA-Selektoren, den Optionsdialog und das Seitenleistenpanel, wenn Home Assistant in der verwendeten
 Testumgebung installiert ist; sonst wird dieses Modul ausdrücklich übersprungen.
+Die CI installiert unter Python 3.14 die gepinnte HA-Testversion aus
+`requirements-ha-test.txt`; ältere Python-Matrixjobs prüfen den unabhängigen Kern.
 Für Änderungen an den HA-Dialogen auch diese Tests in einer passenden HA-Umgebung
 (mit Home Assistant 2026.11.2 geprüft) ausführen:
 
 ```powershell
-python -m pytest -q tests/test_config_flow.py
+python -m pip install -r requirements-ha-test.txt
+python -m pytest -q tests/test_config_flow.py tests/test_native_panel.py tests/test_usage.py
 ```
 
 ## Pull Requests

@@ -19,6 +19,26 @@
           "runtime_seconds": "Runtime per start in seconds, from 1 to 3600. Default: 120 seconds.",
           "max_starts": "Daily limit for automatic starts, from 1 to 100. Default: 6."
         }
+      },
+      "calendar": {
+        "title": "Holiday calendar",
+        "description": "Select a country for public holidays. Leave empty to keep the holiday row unconfigured while collecting weekdays.",
+        "data": {
+          "country": "Country"
+        },
+        "data_description": {
+          "country": "Optional. Regional subdivisions can be selected in the next step."
+        }
+      },
+      "region": {
+        "title": "State / region",
+        "description": "Select a region to include regional holidays. Leave empty to use nationwide public holidays only.",
+        "data": {
+          "subdivision": "State / region"
+        },
+        "data_description": {
+          "subdivision": "Optional. Available regions depend on the selected country."
+        }
       }
     },
     "error": {
@@ -27,7 +47,9 @@
       "invalid_pump": "Select a switch for the circulation pump.",
       "same_sensor": "Select a different buffer sensor or leave this field empty.",
       "invalid_runtime": "Enter a whole number from 1 to 3600 seconds.",
-      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day."
+      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day.",
+      "unsupported_country": "No holiday calendar is available for this country.",
+      "invalid_subdivision": "Select a region from the list or clear the selection."
     }
   },
   "options": {
@@ -49,6 +71,26 @@
           "runtime_seconds": "Runtime per start in seconds, from 1 to 3600. Default: 120 seconds.",
           "max_starts": "Daily limit for automatic starts, from 1 to 100. Default: 6."
         }
+      },
+      "calendar": {
+        "title": "Holiday calendar",
+        "description": "Select a country for public holidays. Leave empty to keep the holiday row unconfigured while collecting weekdays.",
+        "data": {
+          "country": "Country"
+        },
+        "data_description": {
+          "country": "Optional. Regional subdivisions can be selected in the next step."
+        }
+      },
+      "region": {
+        "title": "State / region",
+        "description": "Select a region to include regional holidays. Leave empty to use nationwide public holidays only.",
+        "data": {
+          "subdivision": "State / region"
+        },
+        "data_description": {
+          "subdivision": "Optional. Available regions depend on the selected country."
+        }
       }
     },
     "error": {
@@ -57,7 +99,9 @@
       "invalid_pump": "Select a switch for the circulation pump.",
       "same_sensor": "Select a different buffer sensor or leave this field empty.",
       "invalid_runtime": "Enter a whole number from 1 to 3600 seconds.",
-      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day."
+      "invalid_max_starts": "Enter a whole number from 1 to 100 starts per day.",
+      "unsupported_country": "No holiday calendar is available for this country.",
+      "invalid_subdivision": "Select a region from the list or clear the selection."
     }
   }
 }

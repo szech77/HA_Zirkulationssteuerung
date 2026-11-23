@@ -91,7 +91,7 @@ def test_both_languages_cover_every_configuration_field_and_validation_error():
     source = json.loads((component / 'strings.json').read_text(encoding='utf-8'))
     fields = {'flow_sensor', 'buffer_sensor', 'pump_entity', 'runtime_seconds', 'max_starts'}
     errors = {'unknown_entity', 'invalid_temperature_sensor', 'invalid_pump', 'same_sensor',
-              'invalid_runtime', 'invalid_max_starts'}
+              'invalid_runtime', 'invalid_max_starts', 'unsupported_country', 'invalid_subdivision'}
     for language in ('de', 'en'):
         text = json.loads((component / 'translations' / f'{language}.json').read_text(encoding='utf-8'))
         for section, step in (('config', 'user'), ('options', 'init')):

@@ -1,0 +1,3 @@
+# The HA 2026.11 runtime needs Python 3.14; older CI jobs test the independent core.
+homeassistant==2026.11.2; python_version >= "3.14"
+tzdata==2026.6; sys_platform == "win32"

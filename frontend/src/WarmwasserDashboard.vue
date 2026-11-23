@@ -1,24 +1,30 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-
-interface Props { reason: string; threshold: number; sampleSize: number; remainingStarts: number; nextStart?: string }
-const props = withDefaults(defineProps<Props>(), { nextStart: '—' })
-const status = computed(() => props.reason === 'monitoring' ? 'Monitoring' : props.reason === 'started' ? 'Pumpe gestartet' : props.reason)
+import UsageHeatmap from './UsageHeatmap.vue'
+import type { EntryStatus, Reading } from './types'
+const props = defineProps<{ entry: EntryStatus }>()
+const reasons: Record<string, string> = { monitoring: 'Monitoring', started: 'Pumpe gestartet', demand_event: 'Pumpe gestartet', pump_unreachable: 'Pumpe nicht erreichbar', fresh_flow_value_missing: 'Frische Temperaturwerte fehlen', pump_state_unknown: 'Pumpenzustand unbekannt', daily_limit_reached: 'Startlimit erreicht', no_draw_event: 'Kein Zapfvorgang', pump_already_running: 'Pumpe läuft' }
+const status = computed(() => reasons[props.entry.reason] || 'Status unbekannt')
+const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 })
+const reading = (value: Reading | null) => value?.value == null ? '—' : `${number.format(value.value)} ${value.unit ?? ''}`
+const pumpState = computed(() => ({ on: 'Läuft', off: 'Aus', unknown: 'Unbekannt' })[props.entry.pump.state] || 'Unbekannt')
 </script>
-
 <template>
-  <section class="warmwasser-card" aria-label="Warmwasser-Zirkulation">
-    <header><h2>Warmwasser-Zirkulation</h2><span class="status">{{ status }}</span></header>
-    <div class="metrics">
-      <div><small>Gelernte Schwelle</small><strong>{{ threshold.toFixed(3) }} °C/min</strong></div>
-      <div><small>Stichprobe</small><strong>{{ sampleSize }}</strong></div>
-      <div><small>Restliche Starts</small><strong>{{ remainingStarts }}</strong></div>
-      <div><small>Nächster Start</small><strong>{{ nextStart }}</strong></div>
+  <article class="system-card">
+    <header class="system-heading"><div><p class="eyebrow">WARMWASSER ZU HAUSE</p><h2>{{ entry.title }}</h2></div><span class="status" :class="`status--${entry.status_level}`">{{ status }}</span></header>
+    <div class="metrics temperatures">
+      <section><span>Vorlauf</span><strong>{{ reading(entry.flow) }}</strong><small>{{ entry.flow?.name || 'Nicht konfiguriert' }}<template v-if="entry.flow?.stale"> · veraltet</template></small></section>
+      <section><span>Warmwasserpuffer</span><strong>{{ reading(entry.buffer) }}</strong><small>{{ entry.buffer?.name || 'Nicht konfiguriert' }}<template v-if="entry.buffer?.stale"> · veraltet</template></small></section>
+      <section><span>Zirkulationspumpe</span><strong>{{ pumpState }}</strong><small>{{ entry.pump.entity_id }}</small></section>
     </div>
-    <p class="hint">Automatische Starts werden bei fehlenden frischen Messwerten oder unerreichbarer Pumpe sicher pausiert.</p>
-  </section>
+    <div class="metrics learning">
+      <section><span>Erkennungsschwelle</span><strong>{{ entry.threshold.toFixed(3).replace('.', ',') }} <small>°C/min</small></strong><small>{{ entry.learning_ready ? 'Lernbasis ausreichend' : 'Messdaten werden gesammelt' }}</small></section>
+      <section><span>Erkannte Ereignisse · Lernbasis</span><strong>{{ entry.sample_size }}</strong><small>Zur Anpassung der Erkennungsschwelle</small></section>
+      <section><span>Startkontingent</span><strong>{{ entry.remaining_starts }} <small>/ {{ entry.max_starts }}</small></strong><small>Laufzeit je Start: {{ entry.runtime_seconds }} Sekunden</small></section>
+    </div>
+    <p class="monitoring-note">{{ entry.enabled ? 'Steuerfreigabe ist gesetzt.' : 'Monitoring: Die Messwertbeobachtung schaltet die Pumpe nicht.' }} Bedarfsautomatik: {{ entry.demand_automation ? 'freigegeben' : 'ausgeschaltet' }}.</p>
+    <p class="calendar-summary">Feiertagskalender: {{ entry.country ? [entry.country, entry.subdivision].filter(Boolean).join(' · ') : 'Nicht konfiguriert' }}</p>
+    <UsageHeatmap v-if="entry.heatmap" :data="entry.heatmap" />
+    <p class="hint">Automatische Starts müssen ausdrücklich freigegeben werden. Fehlende oder veraltete Messwerte sind keine gültige Steuergrundlage.</p>
+  </article>
 </template>
-
-<style scoped>
-.warmwasser-card{font-family:system-ui,sans-serif;background:#102a43;color:#f0f4f8;border-radius:16px;padding:20px}.warmwasser-card header{display:flex;justify-content:space-between;align-items:center}.status{color:#9ae6b4}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.metrics div{background:#243b53;border-radius:10px;padding:12px}.metrics small{display:block;color:#bcccdc}.metrics strong{display:block;margin-top:6px}.hint{color:#d9e2ec;font-size:.9rem}@media(max-width:700px){.metrics{grid-template-columns:repeat(2,1fr)}}
-</style>

@@ -26,11 +26,19 @@ Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen ID
 
 ### Variante B: Manuelle Installation
 
-1. Den Ordner
+1. Bei einem Quellbranch zuerst das Frontend bauen:
+
+   ```powershell
+   cd frontend
+   npm ci --ignore-scripts --no-audit --no-fund
+   npm run build
+   ```
+
+   Release-Tags enthalten die gebauten Dateien bereits. Danach den Ordner
    `custom_components/warmwasser_zirkulation/` in das Verzeichnis
    `<config>/custom_components/warmwasser_zirkulation/` kopieren.
 2. Prüfen, dass unter anderem `manifest.json`, `config_flow.py`, `coordinator.py`,
-   `sensor.py` und `switch.py` vorhanden sind.
+   `sensor.py`, `switch.py`, `web/panel.js` und `web/panel.css` vorhanden sind.
 3. Home Assistant neu starten.
 4. Die Integration über die Geräte-&-Dienste-Seite hinzufügen.
 
@@ -70,6 +78,13 @@ vorbelegt. Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
 Nach dem Speichern lädt HA die Integration mit den neuen Optionen neu.
 Die Konfiguration selbst führt keine Schaltbefehle aus.
 
+Danach kann im Schritt **Feiertagskalender** ein Land gewählt werden. Wenn das Land
+regionale Unterteilungen unterstützt, folgt **Bundesland / Region** mit einer
+Auswahlliste; für Deutschland werden Namen wie Bayern oder Nordrhein-Westfalen
+angezeigt. Ohne Region gelten nur landesweite Feiertage. Eine leere Länderauswahl
+deaktiviert die Feiertagszuordnung. Diese Werte lassen sich ebenfalls über
+**Konfigurieren** ändern, ohne die Integration zu löschen.
+
 Optional beziehungsweise für die spätere Planung relevant:
 
 - Puffersensor
@@ -101,24 +116,40 @@ Die gelernte Entnahmeschwelle ist nicht identisch mit dem einstellbaren
 Warmwasser-Schwellwert in °C. Eine zeitgleiche Änderung des Puffersensors ist keine
 Voraussetzung für die Erkennung.
 
-## 5. Lovelace-Dashboard
+## 5. Dashboard und Heatmap
 
-Die Beispielkonfiguration liegt unter `dashboard/warmwasser.yaml`.
+Nach erfolgreicher Einrichtung erscheint **Warmwasser-Zirkulation** automatisch
+in der HA-Seitenleiste. Das Panel und seine Status-API sind HA-Administratoren
+vorbehalten. Eine separate Lovelace-Ressource ist nicht erforderlich.
+Ein Link zum Panel ist optional in `dashboard/warmwasser.yaml` vorbereitet.
 
-Die Vue-Oberfläche wird während der Entwicklung mit Vite gebaut. Für eine produktive
-Lovelace-Einbindung müssen die erzeugten Frontend-Artefakte als Lovelace-Ressource
-bereitgestellt und die verwendete Custom Card in der Zielinstallation registriert
-werden. Die konkrete URL beziehungsweise der Hosting-Ort ist installationsabhängig
-und wird nicht automatisch erfunden.
+Das Panel zeigt echte Vorlauf-/Puffertemperaturen, Pumpenzustand, Betriebsgrund,
+Erkennungsschwelle, Lernbasis, Startkontingent und die Kalenderauswahl. Es lädt seine
+Werte über die bestehende HA-Anmeldung und aktualisiert sie alle 15 Sekunden.
+Verbindungsfehler blenden alte Messwerte aus und bieten einen erneuten Abruf an.
 
-Das Dashboard sollte mindestens anzeigen:
+Die Heatmap verwendet 48 halbstündliche Zellen für Montag bis Sonntag sowie eine
+separate Feiertagszeile. Bei eingerichtetem Kalender fallen Feiertage aus den
+normalen Wochentagszeilen heraus. Die Farbe zeigt den Anteil ausreichend beobachteter
+Tage mit mindestens einem erkannten Zapfvorgang, keine erfundenen Verbräuche.
 
-- Monitoring-/Aktiv-/Pausiert-/Fehlerstatus
-- gelernte Schwelle und Stichprobengröße
-- Beobachtungsquote und Heatmap
-- nächsten geplanten Start und Restkontingent
-- letzten erkannten Zapfvorgang
-- Grund für übersprungene oder pausierte Starts
+- Die Beobachtung beginnt ab Installation und wird pro Konfigurationseintrag unter
+  `.storage/warmwasser_zirkulation.<entry_id>.observations` gespeichert.
+- Ein Tag zählt in einer Zelle erst ab 15 Minuten gültiger Messungen bei ausgeschalteter
+  Pumpe. Messlücken über acht Minuten werden nicht überbrückt; unbekannte Pumpenzustände,
+  veraltete Werte und Pumpenlaufzeiten werden nicht als „kein Verbrauch“ gezählt.
+- Unter drei beobachteten Tagen ist eine Quote schraffiert als vorläufig markiert.
+  Ohne Messbasis bleibt die Zelle grau. Anklicken zeigt die zugrunde liegenden Zahlen.
+- Die Historie ist auf 180 Tage begrenzt. Regionale Feiertage richten sich nach der
+  Kalenderbibliothek und der gewählten Region. Ohne Länderwahl bleibt die Feiertagszeile
+  ausdrücklich unkonfiguriert.
+- Die Beobachtung kalibriert die Erkennung, schaltet die Pumpe jedoch nicht.
+
+Bei manuellen Updates den **gesamten** Integrationsordner einschließlich des gebauten
+`web`-Ordners kopieren, HA neu starten und das Panel mit `Strg` + `F5` neu laden.
+Die gespeicherten Daten unter `.storage` erhalten. Fehlen Build-Dateien, meldet HA
+beim Einrichten ausdrücklich, dass das Frontend gebaut und mitkopiert werden muss.
+Mit Home Assistant 2026.11.2 getestet.
 
 ## 6. Lokale Entwicklung
 

@@ -10,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
+from .calendar import supported_subdivisions, GERMAN_REGIONS
 from .configuration import entry_configuration, validate_configuration
 from .const import (
     CONF_BUFFER_SENSOR, CONF_FLOW_SENSOR, CONF_MAX_STARTS, CONF_PUMP_ENTITY,
@@ -47,7 +48,51 @@ def _validate(hass, user_input):
     return validate_configuration(user_input, attributes)
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class CalendarSteps:
+    async def async_step_calendar(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            country = user_input.get('country') or None
+            if country is None:
+                return self._finish_configuration({**self._pending_configuration,
+                    'country': None, 'subdivision': None})
+            if not isinstance(country, str):
+                errors['country'] = 'unsupported_country'
+            else:
+                country = country.upper()
+                try:
+                    self._regions = await self.hass.async_add_executor_job(supported_subdivisions, country)
+                except (ValueError, NotImplementedError):
+                    errors['country'] = 'unsupported_country'
+                else:
+                    self._pending_configuration['country'] = country
+                    if not self._regions:
+                        return self._finish_configuration({**self._pending_configuration, 'subdivision': None})
+                    return await self.async_step_region()
+        return self.async_show_form(step_id='calendar', errors=errors, last_step=False,
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema({vol.Optional('country'): selector.CountrySelector()}),
+                user_input if user_input is not None else self._calendar_defaults))
+
+    async def async_step_region(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            subdivision = user_input.get('subdivision') or None
+            if subdivision is not None and subdivision not in self._regions:
+                errors['subdivision'] = 'invalid_subdivision'
+            else:
+                return self._finish_configuration({**self._pending_configuration, 'subdivision': subdivision})
+        country = self._pending_configuration['country']
+        options = [{'value': region, 'label': GERMAN_REGIONS.get(region, region) if country == 'DE' else region}
+                   for region in self._regions]
+        defaults = self._calendar_defaults if self._calendar_defaults.get('country') == country else {}
+        return self.async_show_form(step_id='region', errors=errors, last_step=True,
+            data_schema=self.add_suggested_values_to_schema(vol.Schema({vol.Optional('subdivision'):
+                selector.SelectSelector(selector.SelectSelectorConfig(options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN))}), defaults))
+
+
+class ConfigFlow(CalendarSteps, config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     @staticmethod
@@ -60,14 +105,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             data, errors = _validate(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(title="Warmwasser-Zirkulation", data=data)
+                self._pending_configuration = data
+                self._calendar_defaults = {'country': getattr(self.hass.config, 'country', None)}
+                return await self.async_step_calendar()
         return self.async_show_form(
-            step_id="user", errors=errors,
+            step_id="user", errors=errors, last_step=False,
             data_schema=self.add_suggested_values_to_schema(configuration_schema(), user_input),
         )
 
 
-class WarmwaterOptionsFlow(config_entries.OptionsFlowWithReload):
+    def _finish_configuration(self, data):
+        return self.async_create_entry(title="Warmwasser-Zirkulation", data=data)
+
+
+class WarmwaterOptionsFlow(CalendarSteps, config_entries.OptionsFlowWithReload):
     """Save options and let HA reload the entry when they change."""
 
     async def async_step_init(self, user_input=None):
@@ -76,9 +127,15 @@ class WarmwaterOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is not None:
             data, errors = _validate(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(data={**self.config_entry.options, **data})
+                self._pending_configuration = data
+                self._calendar_defaults = values
+                return await self.async_step_calendar()
             values.update(user_input)
         return self.async_show_form(
-            step_id="init", errors=errors,
+            step_id="init", errors=errors, last_step=False,
             data_schema=self.add_suggested_values_to_schema(configuration_schema(), values),
         )
+
+
+    def _finish_configuration(self, data):
+        return self.async_create_entry(data={**self.config_entry.options, **data})

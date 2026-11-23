@@ -12,7 +12,8 @@ und expliziter Aktivierung Schaltbefehle.
   ist optional; Recorder-Daten können als Importquelle verwendet werden.
 * `sensor.py` und `switch.py` sind dünne HA-Adapter. Keine produktiven Entity-IDs oder
   Zugangsdaten werden erfunden; alle Identitäten bleiben konfigurierbar.
-* `frontend/` enthält eine Vue-3-Oberfläche als Lovelace-Ressource.
+* `observations.py` sammelt Live-Beobachtungen ohne Pumpenbefehle und speichert die begrenzte Heatmap-Historie.
+* `frontend/` enthält das Vue-3-Seitenleistenpanel mit authentifiziertem Zugriff auf HA-Betriebsdaten.
 
 ## Einrichtung
 
@@ -32,9 +33,13 @@ Kurzablauf:
 1. Integration über UI konfigurieren: Vorlaufsensor, Puffersensor optional,
    Pumpenschalter, Laufzeit und tägliches Startlimit setzen. Die Auswahl ist unter
    **Konfigurieren** nachträglich änderbar; der Dialog ist auf Deutsch verfügbar.
-2. Mindestens mehrere Tage im Modus `Monitoring` beobachten. InfluxDB ist optional.
-3. Messintervall, Lücken, Pumpenartefakte und Stichprobengröße im Dashboard prüfen.
-4. Erst danach `Aktiv` und optional `Bedarfsautomatik` einschalten.
+   Im nächsten Schritt Land und optional Bundesland/Region für gesetzliche Feiertage auswählen.
+2. Als HA-Administrator **Warmwasser-Zirkulation** in der Seitenleiste öffnen.
+   Bei manueller Installation zuvor `cd frontend`, `npm ci --ignore-scripts` und `npm run build` ausführen;
+   der gesamte Integrationsordner einschließlich `web/panel.js` und `web/panel.css` muss kopiert werden.
+3. Mindestens mehrere Tage im Modus `Monitoring` beobachten. InfluxDB ist optional.
+4. Messintervall, Lücken, Pumpenartefakte und Stichprobengröße im Dashboard prüfen.
+5. Erst danach `Aktiv` und optional `Bedarfsautomatik` einschalten.
 
 Die produktive Installation/Aktivierung ist ausdrücklich nicht Teil dieses Projekts.
 Konfiguration, Pumpenverhalten und reale Zeitabstände müssen an der Anlage verifiziert werden.
@@ -54,3 +59,10 @@ Die Tests verwenden synthetische Zeitreihen und prüfen fachliche Grenzfälle so
 Fehlerbehandlung: Datenlücken, Ausreißer, unbekannte Pumpenzustände, konkurrierende Starts,
 Fenster/Limits, Neustart und optionale Influx-Ausfälle.
 
+
+Die Heatmap zeigt halbstündliche Quoten beobachteter Tage mit Zapfvorgängen:
+Montag bis Sonntag einzeln, Feiertage separat nach der gewählten Region.
+Sie füllt sich ab Installation mit vorhandenen Live-Messungen. Graue Zellen haben
+keine ausreichende Messbasis; schraffierte Werte sind vorläufig. Ein beobachteter
+Tag zählt pro Zelle erst ab 15 Minuten gültiger Messungen bei ausgeschalteter Pumpe.
+Mindestens drei solche Tage sind für eine ausreichende Messbasis nötig.

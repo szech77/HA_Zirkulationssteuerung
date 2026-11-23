@@ -38,8 +38,25 @@ def ha_boundary(monkeypatch):
         module.__path__ = []
         monkeypatch.setitem(sys.modules, name, module)
     sys.modules['homeassistant.helpers.storage'].Store = JsonStore
+    import_helper = ModuleType('homeassistant.helpers.importlib')
+    async def async_import_module(hass, name):
+        return sys.modules[name]
+    import_helper.async_import_module = async_import_module
+    monkeypatch.setitem(sys.modules, import_helper.__name__, import_helper)
+    frontend = ModuleType('custom_components.warmwasser_zirkulation.frontend')
+    frontend.async_register_frontend = AsyncMock()
+    frontend.async_remove_frontend = AsyncMock()
+    monkeypatch.setitem(sys.modules, frontend.__name__, frontend)
+    observations = ModuleType('custom_components.warmwasser_zirkulation.observations')
+    class Observer:
+        def __init__(self, *args): pass
+        async def async_start(self): pass
+        async def async_stop(self): pass
+    observations.ObservationMonitor = Observer
+    monkeypatch.setitem(sys.modules, observations.__name__, observations)
     hass = SimpleNamespace(
-        data={}, services=SimpleNamespace(async_call=AsyncMock()),
+        data={}, config_entries=SimpleNamespace(async_forward_entry_setups=AsyncMock(),
+            async_unload_platforms=AsyncMock(return_value=True)), services=SimpleNamespace(async_call=AsyncMock()),
         states=SimpleNamespace(get=lambda entity_id: SimpleNamespace(state='off')),
     )
     entry = SimpleNamespace(entry_id='synthetic-entry', data={

@@ -26,3 +26,6 @@ Thumbs.db
 secrets.yaml
 known_devices.yaml
 
+
+# Vue panel assets are built locally and included only in release snapshots.
+custom_components/warmwasser_zirkulation/web/

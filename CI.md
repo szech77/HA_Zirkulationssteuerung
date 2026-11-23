@@ -71,3 +71,17 @@ Die Release-Version wird aus dem strukturierten Abschnitt `## New Version` in
 [CHANGELOG.md](./CHANGELOG.md) berechnet. Ohne Freigabe oder bei Ablehnung wird der
 Release-Job nicht ausgeführt; es werden keine Issues und keine Kommentar-Polling-
 Skripte benötigt.
+
+## Panel-Artefakte
+
+`npm run build` schreibt `panel.js` und `panel.css` nach
+`custom_components/warmwasser_zirkulation/web/`. Der Build ist nicht versioniert.
+Der freigegebene Publish-Job baut das Frontend; `tools/release.py publish` verlangt
+beide Dateien und nimmt ihren geprüften Inhalt als Blobs in den Release-Commit auf.
+Quellbranch und dessen Arbeitsstand bleiben unverändert. Ein fehlender oder leerer
+Build verhindert die Veröffentlichung. Für manuelle Quellinstallationen lokal bauen.
+
+Die Python-3.14-Testmatrix und der Security-Job installieren zusätzlich
+`requirements-ha-test.txt` mit Home Assistant 2026.11.2. Dadurch laufen die nativen
+HA-Tests in der Pflicht-CI und pip-audit erfasst auch deren Testabhängigkeiten.
+Unter Python 3.12/3.13 bleibt die HA-Testinstallation per Versionsmarker ausgenommen.

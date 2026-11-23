@@ -19,6 +19,26 @@
           "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 3600. Standard: 120 Sekunden.",
           "max_starts": "Tägliche Obergrenze für automatische Pumpenstarts, von 1 bis 100. Standard: 6."
         }
+      },
+      "calendar": {
+        "title": "Feiertagskalender",
+        "description": "Land für gesetzliche Feiertage auswählen. Ohne Auswahl bleibt die Feiertagszeile unkonfiguriert; die Wochentage werden weiter ausgewertet.",
+        "data": {
+          "country": "Land"
+        },
+        "data_description": {
+          "country": "Optional. Im nächsten Schritt kann eine regionale Unterteilung ausgewählt werden."
+        }
+      },
+      "region": {
+        "title": "Bundesland / Region",
+        "description": "Die passende Region auswählen, damit regionale Feiertage berücksichtigt werden. Ohne Auswahl werden nur landesweit geltende Feiertage verwendet.",
+        "data": {
+          "subdivision": "Bundesland / Region"
+        },
+        "data_description": {
+          "subdivision": "Optional. Die Liste richtet sich nach dem gewählten Land."
+        }
       }
     },
     "error": {
@@ -27,7 +47,9 @@
       "invalid_pump": "Bitte einen Schalter für die Zirkulationspumpe auswählen.",
       "same_sensor": "Bitte einen anderen Puffertemperaturfühler auswählen oder das Feld leer lassen.",
       "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 3600 Sekunden eingeben.",
-      "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben."
+      "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben.",
+      "unsupported_country": "Für dieses Land ist kein Feiertagskalender verfügbar.",
+      "invalid_subdivision": "Bitte eine Region aus der Liste auswählen oder die Auswahl leeren."
     }
   },
   "options": {
@@ -49,6 +71,26 @@
           "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 3600. Standard: 120 Sekunden.",
           "max_starts": "Tägliche Obergrenze für automatische Pumpenstarts, von 1 bis 100. Standard: 6."
         }
+      },
+      "calendar": {
+        "title": "Feiertagskalender",
+        "description": "Land für gesetzliche Feiertage auswählen. Ohne Auswahl bleibt die Feiertagszeile unkonfiguriert; die Wochentage werden weiter ausgewertet.",
+        "data": {
+          "country": "Land"
+        },
+        "data_description": {
+          "country": "Optional. Im nächsten Schritt kann eine regionale Unterteilung ausgewählt werden."
+        }
+      },
+      "region": {
+        "title": "Bundesland / Region",
+        "description": "Die passende Region auswählen, damit regionale Feiertage berücksichtigt werden. Ohne Auswahl werden nur landesweit geltende Feiertage verwendet.",
+        "data": {
+          "subdivision": "Bundesland / Region"
+        },
+        "data_description": {
+          "subdivision": "Optional. Die Liste richtet sich nach dem gewählten Land."
+        }
       }
     },
     "error": {
@@ -57,7 +99,9 @@
       "invalid_pump": "Bitte einen Schalter für die Zirkulationspumpe auswählen.",
       "same_sensor": "Bitte einen anderen Puffertemperaturfühler auswählen oder das Feld leer lassen.",
       "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 3600 Sekunden eingeben.",
-      "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben."
+      "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben.",
+      "unsupported_country": "Für dieses Land ist kein Feiertagskalender verfügbar.",
+      "invalid_subdivision": "Bitte eine Region aus der Liste auswählen oder die Auswahl leeren."
     }
   }
 }

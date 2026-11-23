@@ -62,6 +62,8 @@ class TestNativeConfigFlow(IsolatedAsyncioTestCase):
         result = await flow.async_step_user({'flow_sensor': 'sensor.test_supply',
             'buffer_sensor': 'sensor.test_buffer', 'pump_entity': 'switch.test_pump',
             'runtime_seconds': 90.0, 'max_starts': 3.0})
+        assert result['step_id'] == 'calendar'
+        result = await flow.async_step_calendar({})
         assert result['type'] == 'create_entry'
         assert result['data']['runtime_seconds'] == 90
         assert result['data']['buffer_sensor'] == 'sensor.test_buffer'
@@ -94,6 +96,8 @@ class TestNativeConfigFlow(IsolatedAsyncioTestCase):
         assert marker.description['suggested_value'] == 'sensor.test_buffer'
         result = await flow.async_step_init({'flow_sensor': 'sensor.test_supply',
             'pump_entity': 'switch.test_pump', 'runtime_seconds': 60, 'max_starts': 2})
+        assert result['step_id'] == 'calendar'
+        result = await flow.async_step_calendar({})
         assert result['type'] == 'create_entry'
         assert result['data']['buffer_sensor'] is None
         entry.options = result['data']
@@ -117,3 +121,19 @@ class TestNativeConfigFlow(IsolatedAsyncioTestCase):
             'pump_entity': 'switch.test_pump', 'max_starts': 0})
         assert result['errors'] == {'flow_sensor': 'unknown_entity', 'max_starts': 'invalid_max_starts'}
         assert entry.options == {'max_starts': 4}
+
+
+    async def test_calendar_country_and_german_region_are_configurable(self):
+        flow = ConfigFlow()
+        flow.hass = self.hass
+        await flow.async_step_user({'flow_sensor': 'sensor.test_supply', 'pump_entity': 'switch.test_pump'})
+        result = await flow.async_step_calendar({'country': 'DE'})
+        assert result['step_id'] == 'region'
+        options = next(iter(result['data_schema'].schema.values())).config['options']
+        assert {'value': 'BY', 'label': 'Bayern'} in options
+        invalid = await flow.async_step_region({'subdivision': 'not-a-region'})
+        assert invalid['errors'] == {'subdivision': 'invalid_subdivision'}
+        result = await flow.async_step_region({'subdivision': 'BY'})
+        assert result['data']['country'] == 'DE'
+        assert result['data']['subdivision'] == 'BY'
+        assert self.service_calls == []

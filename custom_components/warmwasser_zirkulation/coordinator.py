@@ -8,6 +8,12 @@ from datetime import datetime, timedelta
 from typing import Protocol
 
 from .domain import DetectionEngine, DetectorConfig, LearningModel, Planner, PumpState, Sample
+from .const import (
+    CONF_MAX_STARTS, CONF_PUMP_ENTITY, CONF_RUNTIME_SECONDS,
+    DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS,
+)
+from .ha_adapters import HomeAssistantPumpGateway, HomeAssistantStateStore
+from .configuration import entry_configuration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,13 +49,6 @@ class CirculationCoordinator:
 
     @classmethod
     def from_home_assistant(cls, hass, entry):
-        from .const import (
-            CONF_MAX_STARTS, CONF_PUMP_ENTITY, CONF_RUNTIME_SECONDS,
-            DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS,
-        )
-        from .ha_adapters import HomeAssistantPumpGateway, HomeAssistantStateStore
-        from .configuration import entry_configuration
-
         configuration = entry_configuration(entry)
         return cls(
             HomeAssistantPumpGateway(hass),

@@ -145,7 +145,21 @@ def plan(args):
             handle.write(f"### Release plan\n\n- Version: `{version}`\n- Kanal: `{args.channel}`\n\n{notes}\n")
 
 
+
+def frontend_files(directory=None):
+    """Only ship the two built panel assets; never publish an empty dashboard."""
+    directory = directory or MANIFEST.parent / 'web'
+    result = {}
+    for name in ('panel.js', 'panel.css'):
+        path = directory / name
+        if path.is_symlink() or not path.is_file() or path.stat().st_size == 0:
+            raise ValueError('Build the frontend before publishing')
+        result[f'custom_components/warmwasser_zirkulation/web/{name}'] = path.read_text(encoding='utf-8')
+    return result
+
+
 def publish(args):
+    assets = frontend_files()
     version, sections = build_plan(args.channel, args.beta_number, args.branch, GitHub(args.repository, os.environ.get("GH_TOKEN", "")))
     tag = f"v{version}"
     github = GitHub(args.repository, os.environ.get("GH_TOKEN", ""))
@@ -178,9 +192,13 @@ def publish(args):
         "content": release_changelog,
         "encoding": "utf-8",
     })
+    asset_tree = []
+    for asset_path, content in assets.items():
+        blob = github.request('/git/blobs', 'POST', {'content': content, 'encoding': 'utf-8'})
+        asset_tree.append({'path': asset_path, 'mode': '100644', 'type': 'blob', 'sha': blob['sha']})
     tree = github.request("/git/trees", "POST", {
         "base_tree": tree_sha,
-        "tree": [
+        "tree": asset_tree + [
             {"path": str(MANIFEST.relative_to(ROOT)).replace("\\", "/"), "mode": "100644", "type": "blob", "sha": manifest_blob["sha"]},
             {"path": "CHANGELOG.md", "mode": "100644", "type": "blob", "sha": changelog_blob["sha"]},
         ],
