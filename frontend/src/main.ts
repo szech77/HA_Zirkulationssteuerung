@@ -36,7 +36,6 @@ export class WarmwasserPanel extends HTMLElement {
     this.app = createApp(App, {
       state: this.#controller.state, saveSettings: this.#controller.configure, importHistory: this.#controller.importHistory,
       onRefresh: () => void this.#controller.refresh(),
-      onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })),
     })
     this.app.use(router)
     this.app.mount(target)

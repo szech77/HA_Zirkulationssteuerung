@@ -135,6 +135,7 @@ try {
   assert.ok(await evaluate(`viewport.scrollTop > ${verticalBefore}`), 'Vertical wheel over heatmap reaches page viewport')
   assert.equal(await evaluate("root.querySelector('.app-header').getBoundingClientRect().top"), 0)
   assert.equal(await evaluate("root.querySelector('header h1')"), null, 'No duplicate breadcrumb')
+  assert.equal(await evaluate("root.querySelector('.menu-button, [aria-label=\"Navigation öffnen\"]')"), null, 'No hamburger button in the panel header')
   // Scroll every page to its end in full-height, offset and auto-height HA shells.
   // The header must be outside the scrolling content, including on narrow screens.
   assert.equal(await evaluate("viewport.contains(root.querySelector('.app-header'))"), false)

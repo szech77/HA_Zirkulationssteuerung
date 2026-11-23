@@ -30,15 +30,13 @@ describe('HA custom panel bridge', () => {
     swipe()
     expect(menu).toHaveBeenCalledTimes(1)
     expect(menu.mock.calls[0][0]).toMatchObject({detail:{open:true},bubbles:true,composed:true})
-    panel.shadowRoot!.querySelector<HTMLButtonElement>('.menu-button')!.click()
-    expect(menu).toHaveBeenCalledTimes(2)
-    expect(menu.mock.calls[1][0].detail).toBeNull()
-    panel.remove();swipe();expect(menu).toHaveBeenCalledTimes(2)
+    expect(panel.shadowRoot!.querySelector('.menu-button')).toBeNull()
+    panel.remove();swipe();expect(menu).toHaveBeenCalledTimes(1)
     document.body.append(panel);await flushPromises()
     const reconnected=panel.shadowRoot!.querySelector<HTMLElement>('.panel-viewport')!
     expect(reconnected).not.toBe(viewport)
     // The old detached viewport cannot dispatch menu requests after reconnecting.
-    swipe();expect(menu).toHaveBeenCalledTimes(2)
+    swipe();expect(menu).toHaveBeenCalledTimes(1)
     panel.remove()
   })
 

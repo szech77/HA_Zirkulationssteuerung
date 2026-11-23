@@ -6,7 +6,7 @@ import lightLogo from './assets/images/icon.svg'
 import darkLogo from './assets/images/dark_icon.svg'
 import type { DashboardState, SaveSettings, ImportHistory } from './types'
 const props = defineProps<{ state: DashboardState; saveSettings?: SaveSettings; importHistory?: ImportHistory }>()
-defineEmits<{ refresh: []; menu: [] }>()
+defineEmits<{ refresh: [] }>()
 const route = useRoute()
 const themeOverride = ref<boolean | null>(null)
 const dark = computed(() => themeOverride.value ?? Boolean(props.state.darkMode))
@@ -14,7 +14,6 @@ const dark = computed(() => themeOverride.value ?? Boolean(props.state.darkMode)
 <template>
   <div class="app-shell" :data-theme="dark ? 'dark' : 'light'">
     <header class="app-header"><div class="header-inner">
-      <button class="icon-button menu-button" aria-label="Navigation öffnen" @click="$emit('menu')"><UiIcon name="menu" /></button>
       <RouterLink class="brand" to="/" aria-label="Zirkulation – zur Übersicht"><img class="brand-logo" :src="dark ? darkLogo : lightLogo" alt="" width="36" height="36"><span>Warmwasser<small>ZIRKULATION</small></span></RouterLink>
       <nav aria-label="Hauptnavigation"><RouterLink to="/" :class="{active: route.name === 'dashboard'}">Übersicht</RouterLink><RouterLink to="/settings" :class="{active: route.name === 'settings'}">Einstellungen</RouterLink></nav>
       <button class="icon-button refresh-button" :disabled="state.loading" :aria-label="state.loading ? 'Wird geladen …' : 'Aktualisieren'" title="Aktualisieren" @click="$emit('refresh')"><UiIcon name="refresh" /></button>
