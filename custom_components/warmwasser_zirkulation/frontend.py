@@ -45,6 +45,7 @@ async def async_register_frontend(hass):
             ])
             websocket_api.async_register_command(hass, websocket_status)
             websocket_api.async_register_command(hass, websocket_configure)
+            websocket_api.async_register_command(hass, websocket_import_history)
             state['resources_registered'] = True
         if not state.get('icon_url'):
             icon_url = f'{ICON_URL}?v={version}'
@@ -98,3 +99,16 @@ async def websocket_configure(hass, connection, msg):
         connection.send_error(msg['id'], 'save_failed', 'Die Konfiguration konnte nicht gespeichert werden.')
         return
     connection.send_result(msg['id'], {'revision': coordinator.runtime.settings_revision})
+
+
+@websocket_api.websocket_command({vol.Required('type'): DOMAIN + '/import_history', vol.Required('entry_id'):str})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_import_history(hass, connection, msg):
+    observer = hass.data.get(DOMAIN + '_observations',{}).get(msg['entry_id'])
+    if observer is None:
+        connection.send_error(msg['id'],'entry_unavailable','Die Integration ist nicht geladen.')
+    elif not observer.request_history(force=True):
+        connection.send_error(msg['id'],'history_unavailable','Der Recorder ist nicht verfügbar oder ein Import läuft bereits.')
+    else:
+        connection.send_result(msg['id'],{'started':True})

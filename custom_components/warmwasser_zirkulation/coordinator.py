@@ -14,6 +14,7 @@ from .const import (CONF_MAX_STARTS, CONF_PUMP_ENTITY, CONF_RUNTIME_SECONDS,
                     DEFAULT_MAX_STARTS, DEFAULT_RUNTIME_SECONDS)
 from .ha_adapters import HomeAssistantPumpGateway, HomeAssistantStateStore, PumpStartRefused
 from .configuration import entry_configuration
+from .persistence import SCHEMA_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ class StateStore(Protocol):
 
 @dataclass
 class RuntimeState:
+    schema_version: int = SCHEMA_VERSION
+    last_prediction_id: str | None = None
+    last_start_at: str | None = None
     control_fault: bool = False
     enabled: bool = False
     demand_automation: bool = False
@@ -134,7 +138,7 @@ class CirculationCoordinator:
         await self.store.save(self.runtime.__dict__)
         return "stopped"
 
-    async def process(self, samples: list[Sample], now: datetime, holidays=frozenset(), *, calendar_ready=True):
+    async def process(self, samples: list[Sample], now: datetime, holidays=frozenset(), *, calendar_ready=True, prediction=None):
         async with self.lock:
             if self._stopping:
                 return "monitoring"
@@ -166,13 +170,22 @@ class CirculationCoordinator:
                 return await self._reason("daily_limit_reached")
             events = [event for event in self.detector.detect(samples)
                       if self.runtime.last_trigger_at is None or event.at > datetime.fromisoformat(self.runtime.last_trigger_at)]
-            if not events:
+            due = (prediction is not None and -30 <= prediction.at.timestamp()-now.timestamp() <= 0
+                   and prediction.identity != self.runtime.last_prediction_id)
+            if not events and not due:
                 return await self._reason("waiting_for_demand")
+            if self.runtime.last_start_at and now.timestamp()-datetime.fromisoformat(self.runtime.last_start_at).timestamp() < 1200:
+                return await self._reason("cooldown")
             if not self.pump_entity:
                 return await self._reason("pump_entity_missing")
             # Persist intent before sending hardware commands, also covering interrupted starts.
             self.runtime.pump_until = datetime.fromtimestamp(now.timestamp() + self.runtime_seconds, timezone.utc)
-            self.runtime.last_trigger_at = events[-1].at.isoformat()
+            previous_start = self.runtime.last_start_at
+            self.runtime.last_start_at = now.isoformat()
+            if due:
+                self.runtime.last_prediction_id = prediction.identity
+            elif events:
+                self.runtime.last_trigger_at = events[-1].at.isoformat()
             self.runtime.daily_starts += 1
             await self.store.save(self.runtime.__dict__)
             try:
@@ -180,6 +193,7 @@ class CirculationCoordinator:
             except PumpStartRefused:
                 # Another automation or a person started it: this run is not ours.
                 self.runtime.pump_until = None
+                self.runtime.last_start_at = previous_start
                 self.runtime.daily_starts -= 1
                 await self.store.save(self.runtime.__dict__)
                 return await self._reason("pump_state_unknown")
@@ -187,8 +201,9 @@ class CirculationCoordinator:
                 self.runtime.control_fault = True
                 _LOGGER.error("automatic pump start failed", extra={"reason": "pump_unreachable", "error_type": type(error).__name__})
                 await self._stop_owned()
+                self.runtime.last_start_at = previous_start
                 self.runtime.daily_starts -= 1
                 await self.store.save(self.runtime.__dict__)
                 return await self._reason("pump_unreachable")
-            await self._reason("demand_event")
+            await self._reason("learned_schedule" if due else "demand_event")
             return "started"

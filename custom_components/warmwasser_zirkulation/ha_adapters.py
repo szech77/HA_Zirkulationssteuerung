@@ -9,7 +9,9 @@ import re
 from .const import DOMAIN
 from .domain import default_schedule, validate_control_settings
 
-STORAGE_VERSION = 1
+from .persistence import SCHEMA_VERSION, migrate_runtime_payload
+
+STORAGE_VERSION = SCHEMA_VERSION
 
 
 class PumpStartRefused(ValueError):
@@ -24,10 +26,20 @@ class HomeAssistantStateStore:
         # Keep domain/coordinator unit tests independent of an installed HA runtime.
         from homeassistant.helpers.storage import Store
 
-        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
+        class RuntimeStore(Store):
+            async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+                if (old_major_version,old_minor_version)!=(1,1):
+                    raise ValueError('Unsupported runtime storage version')
+                migrated=migrate_runtime_payload(old_data)
+                HomeAssistantStateStore._validate(migrated)
+                HomeAssistantStateStore._validate_deadline(migrated)
+                return migrated
+        self._store = RuntimeStore(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
 
     @staticmethod
     def _validate(state: dict) -> None:
+        if 'schema_version' in state and (type(state['schema_version']) is not int or state['schema_version']!=SCHEMA_VERSION):
+            raise ValueError('Unsupported runtime schema version')
         for key in ("enabled", "demand_automation", "control_fault"):
             if key in state and type(state[key]) is not bool:
                 raise ValueError("Invalid persisted automation flag")
@@ -36,7 +48,7 @@ class HomeAssistantStateStore:
             "vacation_windows": state.get("vacation_windows", [])})
         if "settings_revision" in state and (type(state["settings_revision"]) is not int or state["settings_revision"] < 0):
             raise ValueError("Invalid settings revision")
-        for key in ("starts_date", "last_trigger_at"):
+        for key in ("starts_date", "last_trigger_at", "last_start_at", "last_prediction_id"):
             if state.get(key) is not None:
                 if not isinstance(state[key], str):
                     raise ValueError("Invalid persisted control date")
@@ -52,14 +64,23 @@ class HomeAssistantStateStore:
         if "last_reason" in state and not isinstance(state["last_reason"], str):
             raise ValueError("Invalid persisted pump reason")
 
+    @staticmethod
+    def _validate_deadline(state):
+        until=state.get('pump_until')
+        if until is not None and (not isinstance(until,str) or datetime.fromisoformat(until).utcoffset() is None):
+            raise ValueError('Invalid persisted pump deadline or timezone')
+
     async def load(self) -> dict:
         data = await self._store.async_load()
         if data is None:
             return {}
         if not isinstance(data, dict):
             raise ValueError("Invalid persisted runtime state")
-        state = dict(data)
+        state = migrate_runtime_payload(data)
         self._validate(state)
+        self._validate_deadline(state)
+        if state != data:
+            await self._store.async_save(state)
         until = state.get("pump_until")
         if until is not None:
             if not isinstance(until, str):
@@ -75,6 +96,7 @@ class HomeAssistantStateStore:
 
     async def save(self, state: dict) -> None:
         payload = dict(state)
+        payload.setdefault('schema_version',SCHEMA_VERSION)
         self._validate(payload)
         until = payload.get("pump_until")
         if until is not None:

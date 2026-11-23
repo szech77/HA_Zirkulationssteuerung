@@ -143,7 +143,7 @@ def heatmap(events: Iterable[DrawEvent], observed_days: dict[tuple[int, int], in
 
 
 # Public dashboard settings: missing windows always mean no automatic permission.
-SCHEDULE_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun", "holiday")
+SCHEDULE_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun_holiday")
 
 
 def default_schedule():
@@ -190,7 +190,7 @@ def permitted_until(settings, now, runtime_seconds=0, holidays=frozenset()):
     from datetime import time
     if now.utcoffset() is None:
         raise ValueError("A local timezone is required")
-    key = "holiday" if now.date() in holidays else SCHEDULE_DAYS[now.weekday()]
+    key = day_group(now.date(), holidays)
     windows = settings["vacation_windows"] if settings["vacation_active"] else settings["schedule"][key]
     for window in windows:
         start = datetime.combine(now.date(), time.fromisoformat(window["start"]), now.tzinfo)
@@ -201,3 +201,55 @@ def permitted_until(settings, now, runtime_seconds=0, holidays=frozenset()):
         if start.timestamp() <= now.timestamp() < end.timestamp() and now.timestamp() + runtime_seconds <= end.timestamp():
             return end
     return None
+
+
+
+def day_group(day, holidays=()):
+    return "sun_holiday" if day.weekday() == 6 or day in holidays else SCHEDULE_DAYS[day.weekday()]
+
+
+def migrate_schedule(schedule):
+    """Merge legacy permissions by intersection, never adding an automatic hour."""
+    from copy import deepcopy
+    legacy = set(SCHEDULE_DAYS) - {"sun_holiday"} | {"sun", "holiday"}
+    if not isinstance(schedule, dict) or set(schedule) != legacy:
+        return schedule, False
+    # Validate the two old lists before computing their common permissions.
+    normal = {key: deepcopy(schedule[key]) for key in SCHEDULE_DAYS if key != "sun_holiday"}
+    def checked(windows):
+        values = {"mode":"monitoring", "schedule":{**normal, "sun_holiday":windows},
+                  "vacation_active":False, "vacation_windows":[]}
+        return validate_control_settings(values)["schedule"]["sun_holiday"]
+    sunday, holiday = checked(schedule["sun"]), checked(schedule["holiday"])
+    common = []
+    for a in sunday:
+        for b in holiday:
+            start, end = max(a["start"], b["start"]), min(a["end"], b["end"])
+            if start < end:
+                common.append({"start":start,"end":end})
+    # Both validated lists have at most twelve windows; intersection can have more.
+    # Keep at most twelve common windows; omitted hours remain blocked for review.
+    return {**normal, "sun_holiday":sorted(common,key=lambda w:w["start"])[:12]}, True
+
+
+def temperature_value(value, unit):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    if unit == "°F": value = (value - 32) * 5 / 9
+    elif unit == "K": value -= 273.15
+    elif unit != "°C": return None
+    return value if isfinite(value) and -20 <= value <= 150 else None
+
+
+@dataclass(frozen=True, slots=True)
+class LearnedStart:
+    at: datetime
+    demand_at: datetime
+    ratio: float
+    observed_days: int
+
+    @property
+    def identity(self):
+        return self.demand_at.isoformat()

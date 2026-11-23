@@ -5,11 +5,11 @@ import { entry } from './test-data'
 import type { ControlSettings as Settings } from './types'
 
 describe('Dashboard schedule and operating mode configuration', () => {
-  it('starts in monitoring with all eight days blocked', () => {
+  it('starts in monitoring with all seven day groups blocked', () => {
     const wrapper=mount(ControlSettings,{props:{entry:entry()}})
     expect(wrapper.get('select').element.value).toBe('monitoring')
-    expect(wrapper.findAll('[data-day]')).toHaveLength(9)
-    expect(wrapper.text()).toContain('Feiertage ersetzen den jeweiligen Wochentag')
+    expect(wrapper.findAll('[data-day]')).toHaveLength(8)
+    expect(wrapper.text()).toContain('Sonn- und Feiertage verwenden dieselben Zeitfenster')
     expect(wrapper.text()).toContain('Home-Assistant-Zeitzone')
     expect(wrapper.get('[type=submit]').attributes('disabled')).toBeDefined()
   })
@@ -24,12 +24,12 @@ describe('Dashboard schedule and operating mode configuration', () => {
     await monday.get('button').trigger('click'); await monday.findAll('button').at(-1)!.trigger('click')
     await wrapper.get('[aria-label="Montag Abschnitt 2 von"]').setValue('18:00')
     await wrapper.get('[aria-label="Montag Abschnitt 2 bis"]').setValue('21:00')
-    await wrapper.get('[data-day=holiday] button').trigger('click')
+    await wrapper.get('[data-day=sun_holiday] button').trigger('click')
     await wrapper.get('[data-day=vacation] button').trigger('click')
     await wrapper.get('[aria-label="Urlaubsprofil aktivieren"]').setValue(true)
     await wrapper.get('select').setValue('active')
     await wrapper.get('form').trigger('submit'); await flushPromises()
-    expect(save).toHaveBeenCalledWith('synthetic-entry',expect.objectContaining({mode:'active',vacation_active:true,schedule:expect.objectContaining({mon:[{start:'06:00',end:'08:00'},{start:'18:00',end:'21:00'}],holiday:[{start:'06:00',end:'08:00'}]}),vacation_windows:[{start:'06:00',end:'08:00'}]}),0)
+    expect(save).toHaveBeenCalledWith('synthetic-entry',expect.objectContaining({mode:'active',vacation_active:true,schedule:expect.objectContaining({mon:[{start:'06:00',end:'08:00'},{start:'18:00',end:'21:00'}],sun_holiday:[{start:'06:00',end:'08:00'}]}),vacation_windows:[{start:'06:00',end:'08:00'}]}),0)
     expect(wrapper.get('[role=status]').text()).toBe('Konfiguration gespeichert.')
     expect(wrapper.text()).not.toContain('Ungespeicherte Änderungen')
     await wrapper.get('[aria-label="Montag Abschnitt 1 entfernen"]').trigger('click')
@@ -79,6 +79,14 @@ describe('Dashboard schedule and operating mode configuration', () => {
     expect(wrapper.get('[type=submit]').attributes('disabled')).toBeUndefined()
     await wrapper.get('form').trigger('submit'); await flushPromises()
     expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the automatically migrated single Sunday/holiday group', () => {
+    const value=entry()
+    const wrapper=mount(ControlSettings,{props:{entry:value}})
+    expect(wrapper.get('[data-day=sun_holiday]').text()).toContain('Sonn-/Feiertage')
+    expect(wrapper.find('[data-day=sun]').exists()).toBe(false)
+    expect(wrapper.find('[data-day=holiday]').exists()).toBe(false)
   })
 
 })

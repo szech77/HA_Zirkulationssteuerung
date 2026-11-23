@@ -229,3 +229,20 @@ async def test_changed_live_pump_state_never_stops_someone_elses_run(ha_boundary
     assert await control.process(samples(at), at) == 'pump_state_unknown'
     assert control.runtime.pump_until is None
     hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_stored_legacy_sunday_and_holiday_settings_migrate_without_new_permission(ha_boundary):
+    hass,entry,files=ha_boundary
+    schedule={day:[] for day in ('mon','tue','wed','thu','fri','sat','sun','holiday')}
+    schedule['sun']=[{'start':'06:00','end':'10:00'}]
+    schedule['holiday']=[{'start':'08:00','end':'12:00'}]
+    files[f'{DOMAIN}.{entry.entry_id}']=json.dumps({'schedule':schedule,'settings_revision':2})
+    control=CirculationCoordinator.from_home_assistant(hass,entry); await control.async_start()
+    assert control.runtime.schedule['sun_holiday']==[{'start':'08:00','end':'10:00'}]
+    assert control.runtime.schema_version==2 and control.runtime.settings_revision==3
+    restored=CirculationCoordinator.from_home_assistant(hass,entry); await restored.async_start()
+    assert restored.runtime.settings_revision==3
+    assert restored.runtime.schema_version==2
+    await restored.async_configure(restored.settings(),3)
+    hass.services.async_call.assert_not_awaited()

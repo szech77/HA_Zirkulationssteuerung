@@ -12,7 +12,7 @@ def cover(history, start):
         history.observe(start + timedelta(minutes=minutes), start + timedelta(minutes=minutes + 5), UTC)
 
 
-def test_weekdays_saturday_sunday_and_holidays_have_separate_rows():
+def test_weekdays_saturday_and_combined_sunday_holiday_group():
     history = UsageHistory()
     for day in range(5, 12):
         start = datetime(2026, 1, day, 6, tzinfo=UTC)
@@ -20,9 +20,10 @@ def test_weekdays_saturday_sunday_and_holidays_have_separate_rows():
         history.event(start, UTC)
     result = history.heatmap(date(2026, 1, 11), {date(2026, 1, 6)}, True)
     rows = {row['key']: row['cells'][12] for row in result['rows']}
-    for key in ('mon', 'wed', 'thu', 'fri', 'sat', 'sun', 'holiday'):
+    for key in ('mon', 'wed', 'thu', 'fri', 'sat'):
         assert rows[key]['ratio'] == 1
         assert rows[key]['event_days'] == rows[key]['observed_days'] == 1
+    assert rows['sun_holiday']['event_days'] == rows['sun_holiday']['observed_days'] == 2
     assert rows['tue']['ratio'] is None
 
 

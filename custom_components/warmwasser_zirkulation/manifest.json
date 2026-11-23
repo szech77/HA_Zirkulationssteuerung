@@ -1,6 +1,9 @@
 {
   "domain": "warmwasser_zirkulation",
   "name": "Warmwasser-Zirkulation",
+  "after_dependencies": [
+    "recorder"
+  ],
   "categories": [
     "climate.water_heaters"
   ],

@@ -43,3 +43,9 @@ tragen dieselben Gründe wie Dashboard und Betriebssensor, darunter `outside_sch
 `waiting_for_demand`, `daily_limit_reached`, `calendar_unavailable` und
 `pump_unreachable`. Unveränderte Steuerzustände werden dedupliziert.
 Adapterfehler verwenden `control_failed`, die Wiederaufnahme `control_restored`.
+
+
+Der Recorder-Import verwendet `history_import_complete` und `history_import_failed`.
+Fehler enthalten nur die Ausnahmeklasse, keine Datenbankantworten oder Messreihen.
+`learned_schedule` kennzeichnet einen vorausschauenden Start, `cooldown` den gemeinsamen
+Abstand zwischen automatischen Starts. Der Import löst selbst keine Pumpenbefehle aus.

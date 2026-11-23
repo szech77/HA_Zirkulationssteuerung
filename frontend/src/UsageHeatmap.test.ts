@@ -4,13 +4,13 @@ import UsageHeatmap from './UsageHeatmap.vue'
 import { heatmap } from './test-data'
 
 describe('usage heatmap', () => {
-  it('shows every weekday, Saturday, Sunday and a separate holiday row without inventing data', () => {
+  it('shows weekdays, Saturday and the combined Sunday/holiday row without inventing data', () => {
     const wrapper=mount(UsageHeatmap,{props:{data:heatmap()}})
-    for (const day of ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag','Feiertag']) expect(wrapper.text()).toContain(day)
-    expect(wrapper.findAll('tbody tr')).toHaveLength(8)
-    expect(wrapper.findAll('.heat-cell')).toHaveLength(384)
-    expect(wrapper.findAll('.no-data')).toHaveLength(385)
-    expect(wrapper.text()).toContain('Datensammlung beginnt')
+    for (const day of ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonn-/Feiertage']) expect(wrapper.text()).toContain(day)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(7)
+    expect(wrapper.findAll('.heat-cell')).toHaveLength(336)
+    expect(wrapper.findAll('.no-data')).toHaveLength(337)
+    expect(wrapper.text()).toContain('HA-Historie')
   })
   it('explains measured fractions and exposes the cell details on click', async () => {
     const data=heatmap(); data.observed_dates=4
@@ -28,7 +28,7 @@ describe('usage heatmap', () => {
     const wrapper=mount(UsageHeatmap,{props:{data}})
     expect(wrapper.findAll('tbody tr')[0].findAll('button')[1].classes()).toContain('provisional')
     expect(wrapper.text()).toContain('Feiertage sind noch nicht konfiguriert')
-    expect(wrapper.findAll('tbody tr')[7].find('button').attributes('aria-label')).toContain('nicht konfiguriert')
+    expect(wrapper.findAll('tbody tr')[6].find('button').attributes('aria-label')).toContain('Sonn-/Feiertage')
   })
   it('offers arrow-key navigation with one keyboard entry point', async () => {
     const wrapper=mount(UsageHeatmap,{props:{data:heatmap()},attachTo:document.body})

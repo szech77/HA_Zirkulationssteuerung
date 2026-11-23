@@ -12,7 +12,7 @@ from custom_components.warmwasser_zirkulation.coordinator import CirculationCoor
 def settings():
     result = {"mode": "active", "schedule": default_schedule(), "vacation_active": False, "vacation_windows": []}
     result["schedule"]["mon"] = [{"start": "06:00", "end": "08:00"}, {"start": "18:00", "end": "21:00"}]
-    result["schedule"]["holiday"] = [{"start": "09:00", "end": "11:00"}]
+    result["schedule"]["sun_holiday"] = [{"start": "09:00", "end": "11:00"}]
     return result
 
 
@@ -58,7 +58,7 @@ def test_complete_runtime_must_fit_and_midnight_is_explicit():
 
 def test_runtime_uses_elapsed_seconds_at_dst_transition():
     config = settings()
-    config["schedule"]["sun"] = [{"start": "01:00", "end": "04:00"}]
+    config["schedule"]["sun_holiday"] = [{"start": "01:00", "end": "04:00"}]
     at = datetime(2026, 3, 29, 1, 59, tzinfo=ZoneInfo("Europe/Berlin"))
     assert permitted_until(config, at, 3660)
     assert permitted_until(config, at, 3661) is None
@@ -208,6 +208,39 @@ async def test_device_fault_does_not_clear_when_measurements_disappear_and_retur
 
 
 def test_nonexistent_dst_boundary_does_not_extend_permission():
-    config=settings(); config['schedule']['sun']=[{'start':'01:00','end':'02:30'}]
+    config=settings(); config['schedule']['sun_holiday']=[{'start':'01:00','end':'02:30'}]
     at=datetime(2026,3,29,1,59,tzinfo=ZoneInfo('Europe/Berlin'))
     assert permitted_until(config, at, 120) is None
+
+
+@pytest.mark.asyncio
+async def test_learned_pattern_can_start_without_a_live_draw_but_requires_live_safety_and_mode():
+    from custom_components.warmwasser_zirkulation.domain import LearnedStart
+    control=coordinator(); await control.async_configure(settings(),0)
+    plan=LearnedStart(now(),now()+timedelta(minutes=2),1.0,3)
+    quiet=[Sample(now()-timedelta(minutes=2),40,PumpState.OFF),Sample(now(),40,PumpState.OFF)]
+    assert await control.process(quiet,now(),prediction=plan)=='started'
+    assert control.runtime.last_reason=='learned_schedule'
+    assert control.runtime.last_prediction_id==plan.identity
+    assert await control.process([],now()+timedelta(seconds=120),prediction=plan)=='stopped'
+    assert await control.process(quiet,now()+timedelta(seconds=121),prediction=plan)=='waiting_for_demand'
+    control.pump.turn_on.assert_awaited_once()
+    other=coordinator()
+    assert await other.process(quiet,now(),prediction=plan)=='monitoring'
+    other.pump.turn_on.assert_not_awaited()
+    for data in ([],[Sample(now(),40,PumpState.UNKNOWN)]):
+        invalid=coordinator(); await invalid.async_configure(settings(),0)
+        await invalid.process(data,now(),prediction=plan)
+        invalid.pump.turn_on.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_predicted_and_demand_starts_share_a_twenty_minute_cooldown():
+    from custom_components.warmwasser_zirkulation.domain import LearnedStart
+    control=coordinator(); await control.async_configure(settings(),0)
+    plan=LearnedStart(now(),now()+timedelta(minutes=2),1.0,3)
+    await control.process(samples(now()),now(),prediction=plan)
+    await control.process([],now()+timedelta(seconds=120))
+    later=now()+timedelta(minutes=5)
+    assert await control.process(samples(later),later)=='cooldown'
+    control.pump.turn_on.assert_awaited_once()

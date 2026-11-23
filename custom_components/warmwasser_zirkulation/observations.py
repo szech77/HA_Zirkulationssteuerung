@@ -1,5 +1,7 @@
 """Collect measurements and schedule serialized control independently of the panel."""
-from datetime import datetime, timedelta, timezone
+import asyncio
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone, time
 import logging
 from math import isfinite
 
@@ -11,28 +13,16 @@ from homeassistant.util import dt as dt_util
 from .calendar import holiday_dates
 from .configuration import entry_configuration
 from .const import DOMAIN
-from .domain import PumpState, Sample
+from .domain import PumpState, Sample, temperature_value
 from .usage import UsageHistory
+from .persistence import SCHEMA_VERSION, migrate_observation_payload
 
 _LOGGER = logging.getLogger(__name__)
 OBSERVERS = DOMAIN + '_observations'
 
 
 def temperature(state):
-    if state is None:
-        return None
-    try:
-        value = float(state.state)
-    except (TypeError, ValueError):
-        return None
-    unit = state.attributes.get('unit_of_measurement')
-    if unit == '°F':
-        value = (value - 32) * 5 / 9
-    elif unit == 'K':
-        value -= 273.15
-    elif unit != '°C':
-        return None
-    return value if isfinite(value) and -20 <= value <= 150 else None
+    return None if state is None else temperature_value(state.state,state.attributes.get('unit_of_measurement'))
 
 
 def _positive_number(value):
@@ -42,11 +32,18 @@ def _positive_number(value):
         return False
 
 
+class ObservationStateStore(Store):
+    async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+        if (old_major_version,old_minor_version)!=(1,1):
+            raise ValueError('Unsupported observation storage version')
+        return migrate_observation_payload(old_data,self.hass.config.time_zone)
+
+
 class ObservationMonitor:
     def __init__(self, hass, entry, coordinator):
         self.hass, self.entry, self.coordinator = hass, entry, coordinator
         self.configuration = entry_configuration(entry)
-        self.store = Store(hass, 1, f'{DOMAIN}.{entry.entry_id}.observations')
+        self.store = ObservationStateStore(hass, SCHEMA_VERSION, f'{DOMAIN}.{entry.entry_id}.observations')
         self.history = UsageHistory()
         self.previous = None
         self.control_samples = []
@@ -61,6 +58,10 @@ class ObservationMonitor:
         self.started = False
         self.control_pending = False
         self.control_problem = None
+        self.import_task = None
+        self.import_info = {'state':'idle','days':0,'events':0,'assumed_pump_off':False,'until':None,'last_event':None}
+        self.next_prediction = None
+        self.prediction_key = None
 
     async def async_start(self):
         data = await self.store.async_load()
@@ -68,7 +69,27 @@ class ObservationMonitor:
             data = {}
         if not isinstance(data, dict):
             raise ValueError('Invalid observation data')
+        migrated=migrate_observation_payload(data,self.hass.config.time_zone)
+        if migrated!=data:
+            await self.store.async_save(migrated)
+        data=migrated
+        source = [self.configuration.get('flow_sensor'),self.configuration.get('pump_entity'),self.hass.config.time_zone]
+        if data.get('history_entities',source) != source:
+            data = {}
         self.history = UsageHistory(data.get('days', {}))
+        saved_import = data.get('history_import',{})
+        if saved_import:
+            if (not isinstance(saved_import,dict) or saved_import.get('state') not in ('idle','loading','complete','unavailable','error')
+                    or type(saved_import.get('days')) is not int or not 0 <= saved_import['days'] <= 28
+                    or type(saved_import.get('events')) is not int or saved_import['events'] < 0
+                    or type(saved_import.get('assumed_pump_off')) is not bool):
+                raise ValueError('Invalid history import data')
+            for key in ('until','last_event'):
+                if saved_import.get(key):
+                    until = datetime.fromisoformat(saved_import[key])
+                    if until.utcoffset() is None:
+                        raise ValueError('History import time needs a timezone')
+            self.import_info = dict(saved_import)
         try:
             self.last_event = datetime.fromisoformat(data['last_event']) if data.get('last_event') else None
         except (ValueError, TypeError):
@@ -90,6 +111,7 @@ class ObservationMonitor:
         self.unsubscribers.append(async_track_state_change_event(self.hass, [e for e in entities if e], self._changed))
         self.unsubscribers.append(async_track_time_interval(self.hass, self._tick, timedelta(seconds=30)))
         self.unsubscribers.append(async_track_time_interval(self.hass, self._control_tick, timedelta(seconds=1)))
+        self.request_history()
 
     async def _calendar(self):
         zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
@@ -109,14 +131,23 @@ class ObservationMonitor:
             self.refresh()
 
     async def _control_tick(self, now):
-        if self.closed or self.control_pending or not (self.coordinator.runtime.enabled or self.coordinator.runtime.pump_until):
+        if self.closed or self.control_pending:
             return
         zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
         local_now = now.astimezone(zone)
         self.control_pending = True
         try:
+            key = (int(now.timestamp())//30,self.coordinator.runtime.settings_revision,self.coordinator.runtime.last_prediction_id)
+            if key != self.prediction_key:
+                self.next_prediction = self.history.predict(local_now,self.coordinator.settings(),
+                    self.coordinator.runtime_seconds,self.holidays,bool(self.configuration.get('country')),
+                    exclude_identity=self.coordinator.runtime.last_prediction_id)
+                self.prediction_key = key
+            if not (self.coordinator.runtime.enabled or self.coordinator.runtime.pump_until):
+                return
             await self.coordinator.process(self.control_samples if not self.problem else [], local_now,
-                self.holidays, calendar_ready=self.calendar_year == local_now.year)
+                self.holidays, calendar_ready=self.calendar_year == local_now.year,
+                prediction=self.next_prediction if self.import_info['state'] != 'loading' else None)
             if self.control_problem:
                 _LOGGER.info('Circulation control recovered', extra={'reason': 'control_restored'})
                 self.control_problem = None
@@ -183,8 +214,77 @@ class ObservationMonitor:
         self.store.async_delay_save(self._data, 30)
 
     def _data(self):
-        return {'days': self.history.days, 'last_event': self.last_event.isoformat() if self.last_event else None,
-                'learning_samples': self.coordinator.model.samples, 'threshold': self.coordinator.model.threshold}
+        return {'schema_version':SCHEMA_VERSION,'days': deepcopy(self.history.days), 'history_import':dict(self.import_info),
+                'history_entities':[self.configuration.get('flow_sensor'),self.configuration.get('pump_entity'),self.hass.config.time_zone], 'last_event': self.last_event.isoformat() if self.last_event else None,
+                'learning_samples': list(self.coordinator.model.samples), 'threshold': self.coordinator.model.threshold}
+
+    def request_history(self, *, force=False):
+        if self.closed or self.import_task is not None and not self.import_task.done():
+            return False
+        if 'recorder' not in self.hass.config.components:
+            self.import_info['state'] = 'unavailable'
+            return False
+        zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
+        today = dt_util.utcnow().astimezone(zone).date()
+        if not force and self.history.sufficient(today,self.holidays,bool(self.configuration.get('country'))):
+            return False
+        self.import_info['state'] = 'loading'
+        self.import_task = self.hass.async_create_background_task(self._import_history(force),
+            'warmwater_recorder_history', eager_start=False)
+        return True
+
+    async def _import_history(self, force):
+        zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
+        today = dt_util.utcnow().astimezone(zone).date()
+        first = datetime.combine(today-timedelta(days=28),time.min,zone)
+        stop = datetime.combine(today,time.min,zone)
+        cursor = first
+        if not force and self.import_info.get('until'):
+            cursor = max(first,datetime.fromisoformat(self.import_info['until']).astimezone(zone))
+        self.import_info['days'] = max(0,min(28,(cursor.date()-first.date()).days))
+        last_event = (datetime.fromisoformat(self.import_info['last_event'])
+                      if not force and self.import_info.get('last_event') else None)
+        try:
+            from .recorder import read_history_day
+            while cursor < stop and not self.closed:
+                end = datetime.combine(cursor.date()+timedelta(days=1),time.min,zone)
+                batch = await read_history_day(self.hass,self.configuration['flow_sensor'],self.configuration['pump_entity'],
+                    cursor.astimezone(timezone.utc),end.astimezone(timezone.utc),zone,self.coordinator.model.threshold,last_event)
+                if self.closed:
+                    return
+                last_event = batch.last_event
+                unseen = []
+                seen = set()
+                for event in batch.events:
+                    local = event.at.astimezone(zone); date_key = local.date().isoformat()
+                    slot = local.hour*2+local.minute//30
+                    before = self.history.days.get(date_key)
+                    if (before is None or not before['events'][slot]) and (date_key,slot) not in seen:
+                        unseen.append(event.slope); seen.add((date_key,slot))
+                self.history.merge(batch.history)
+                self.history.prune(today)
+                if unseen:
+                    self.coordinator.model.learn([],unseen)
+                    self.coordinator.model.samples = self.coordinator.model.samples[-512:]
+                self.import_info['events'] += len(unseen)
+                self.import_info['assumed_pump_off'] |= batch.assumed_pump_off
+                self.import_info['days'] += 1
+                self.import_info['until'] = end.isoformat()
+                self.import_info['last_event'] = last_event.isoformat() if last_event else None
+                self.prediction_key = None
+                await self.store.async_save(self._data())
+                cursor = end
+                await asyncio.sleep(0)
+            if not self.closed:
+                self.import_info['state'] = 'complete'
+                await self.store.async_save(self._data())
+                _LOGGER.info('Recorder history import completed',extra={'reason':'history_import_complete'})
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            self.import_info['state'] = 'error'
+            _LOGGER.error('Recorder history import failed; live monitoring continues',
+                extra={'reason':'history_import_failed','error_type':type(error).__name__})
 
     def snapshot(self):
         zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
@@ -193,6 +293,12 @@ class ObservationMonitor:
 
     async def async_stop(self):
         self.closed = True
+        if self.import_task is not None and not self.import_task.done():
+            self.import_task.cancel()
+            try:
+                await self.import_task
+            except asyncio.CancelledError:
+                pass
         for unsubscribe in self.unsubscribers:
             unsubscribe()
         self.unsubscribers.clear()

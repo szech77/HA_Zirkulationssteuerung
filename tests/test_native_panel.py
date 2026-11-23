@@ -14,7 +14,7 @@ from homeassistant.exceptions import Unauthorized, ConfigEntryNotReady
 from homeassistant.components import frontend
 from custom_components.warmwasser_zirkulation import async_setup_entry, async_unload_entry
 from custom_components.warmwasser_zirkulation.const import DOMAIN
-from custom_components.warmwasser_zirkulation.frontend import websocket_status, websocket_configure
+from custom_components.warmwasser_zirkulation.frontend import websocket_status, websocket_configure, websocket_import_history
 from custom_components.warmwasser_zirkulation.observations import OBSERVERS
 from custom_components.warmwasser_zirkulation.sensor import WarmwaterReasonSensor
 from custom_components.warmwasser_zirkulation.switch import WarmwaterAutomationSwitch
@@ -73,7 +73,7 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         response = connection.send_result.call_args.args[1]
         assert response['entries'][0]['flow']['value'] == 45
-        assert len(response['entries'][0]['heatmap']['rows']) == 8
+        assert len(response['entries'][0]['heatmap']['rows']) == 7
         assert self.service_calls == []
         assert await async_unload_entry(self.hass, self.entry)
         assert not frontend.async_panel_exists(self.hass, 'warmwasser-zirkulation')
@@ -152,6 +152,151 @@ class TestNativePanel(IsolatedAsyncioTestCase):
                 await async_unload_entry(self.hass, self.entry)
         assert self.hass.states.get('switch.test_pump').state == 'off'
         assert control.runtime.pump_until is None
+
+    async def test_background_history_bootstrap_is_idempotent_and_never_switches_hardware(self):
+        from custom_components.warmwasser_zirkulation.history import HistoricalTemperature, replay_history
+        from copy import deepcopy
+        at=datetime(2026,11,23,7,tzinfo=timezone.utc)
+        async def read(hass,flow,pump,start,end,zone,threshold,last_event):
+            base=start+timedelta(hours=7)
+            values=[HistoricalTemperature(base+timedelta(minutes=n),40+n*.2) for n in (0,5,10,15)]
+            return replay_history(values,[],start,end,zone,threshold,last_event)
+        self.hass.config.components.add('recorder')
+        with patch('homeassistant.util.dt.utcnow',return_value=at), patch(
+                'custom_components.warmwasser_zirkulation.recorder.read_history_day',side_effect=read) as query:
+            await async_setup_entry(self.hass,self.entry)
+            observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+            await observer.import_task
+            assert observer.import_info['state']=='complete'
+            assert observer.import_info['days']==28
+            assert observer.import_info['assumed_pump_off']
+            assert len(observer.coordinator.model.samples)==28
+            before=deepcopy(observer.history.days)
+            assert observer.request_history(force=True)
+            await observer.import_task
+            assert observer.history.days==before
+            assert len(observer.coordinator.model.samples)==28
+            assert query.call_count==56
+            saved=await observer.store.async_load()
+            assert saved['history_import']['state']=='complete'
+            assert len(saved['days'])==28
+            values=observer.coordinator.settings()
+            values['schedule']={day:[{'start':'06:00','end':'09:00'}] for day in values['schedule']}
+            await observer.coordinator.async_configure(values,0)
+            await observer._control_tick(at)
+            assert observer.next_prediction is not None
+        assert self.service_calls==[]
+
+    async def test_history_failure_preserves_live_monitoring_and_hides_private_exception(self):
+        self.hass.config.components.add('recorder')
+        with patch('custom_components.warmwasser_zirkulation.recorder.read_history_day',side_effect=RuntimeError('synthetic private response')):
+            await async_setup_entry(self.hass,self.entry)
+            observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+            await observer.import_task
+        assert observer.import_info['state']=='error'
+        assert observer.problem is None
+        assert self.service_calls==[]
+
+    async def test_history_import_resumes_from_persisted_day_after_failure_and_reload(self):
+        from custom_components.warmwasser_zirkulation.history import HistoricalTemperature, replay_history
+        at=datetime(2026,11,23,7,tzinfo=timezone.utc)
+        calls=[]
+        async def read(hass,flow,pump,start,end,zone,threshold,last_event):
+            calls.append(start)
+            if len(calls)==3:
+                raise RuntimeError('synthetic private database details')
+            values=[HistoricalTemperature(start+timedelta(hours=7,minutes=n),40+n*.2) for n in (0,5,10,15)]
+            return replay_history(values,[],start,end,zone,threshold,last_event)
+        self.hass.config.components.add('recorder')
+        with patch('homeassistant.util.dt.utcnow',return_value=at), patch(
+                'custom_components.warmwasser_zirkulation.recorder.read_history_day',side_effect=read):
+            await async_setup_entry(self.hass,self.entry)
+            observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+            with self.assertLogs('custom_components.warmwasser_zirkulation.observations',level='ERROR') as log:
+                await observer.import_task
+            assert 'synthetic private database details' not in str(log.output)
+            assert observer.import_info['state']=='error'
+            assert observer.import_info['days']==2
+            await async_unload_entry(self.hass,self.entry)
+            await async_setup_entry(self.hass,self.entry)
+            restored=self.hass.data[OBSERVERS][self.entry.entry_id]
+            await restored.import_task
+            assert restored.import_info['state']=='complete' and restored.import_info['days']==28
+            assert calls[2]==calls[3]
+            assert len(calls)==29
+            assert len(restored.coordinator.model.samples)==28
+        assert self.service_calls==[]
+
+    async def test_pending_history_import_is_cancelled_when_unloading(self):
+        started=asyncio.Event()
+        async def wait(*args):
+            started.set()
+            await asyncio.Event().wait()
+        self.hass.config.components.add('recorder')
+        with patch('custom_components.warmwasser_zirkulation.recorder.read_history_day',side_effect=wait):
+            await async_setup_entry(self.hass,self.entry)
+            observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+            await asyncio.wait_for(started.wait(),5)
+            assert await async_unload_entry(self.hass,self.entry)
+            assert observer.import_task.done() and observer.closed
+        assert self.service_calls==[]
+
+    async def test_history_import_command_requires_admin_and_loaded_entry(self):
+        payload={'id':3,'type':DOMAIN+'/import_history','entry_id':self.entry.entry_id}
+        for user in (None,SimpleNamespace(is_admin=False)):
+            connection=SimpleNamespace(user=user,send_result=Mock(),send_error=Mock())
+            with self.assertRaises(Unauthorized): websocket_import_history(self.hass,connection,payload)
+        done=asyncio.Event()
+        connection=SimpleNamespace(user=SimpleNamespace(is_admin=True),send_result=Mock(side_effect=lambda *args:done.set()),send_error=Mock(side_effect=lambda *args:done.set()))
+        websocket_import_history(self.hass,connection,payload)
+        await asyncio.wait_for(done.wait(),5)
+        assert connection.send_error.call_args.args[1]=='entry_unavailable'
+        await async_setup_entry(self.hass,self.entry)
+        done.clear(); websocket_import_history(self.hass,connection,payload)
+        await asyncio.wait_for(done.wait(),5)
+        assert connection.send_error.call_args.args[1]=='history_unavailable'
+
+    async def test_version_one_native_stores_migrate_both_envelopes_and_payloads_automatically(self):
+        import json
+        from pathlib import Path
+        from homeassistant.helpers.storage import Store
+        from custom_components.warmwasser_zirkulation.domain import default_schedule
+        runtime_key=f'{DOMAIN}.{self.entry.entry_id}'
+        observation_key=runtime_key+'.observations'
+        schedule={day:[] for day in ('mon','tue','wed','thu','fri','sat','sun','holiday')}
+        schedule['sun']=[{'start':'06:00','end':'10:00'}]
+        schedule['holiday']=[{'start':'08:00','end':'12:00'}]
+        await Store(self.hass,1,runtime_key).async_save({'schedule':schedule,'daily_starts':2,'settings_revision':4})
+        original={'days':{'2026-11-22':{'coverage':[900]*48,'events':[True]*48}},'threshold':.2,'learning_samples':[.3]*12}
+        await Store(self.hass,1,observation_key).async_save(original)
+        await async_setup_entry(self.hass,self.entry)
+        control=self.hass.data[DOMAIN][self.entry.entry_id]
+        observer=self.hass.data[OBSERVERS][self.entry.entry_id]
+        assert control.runtime.schema_version==2 and control.runtime.settings_revision==5
+        assert control.runtime.daily_starts==2
+        assert control.runtime.schedule['sun_holiday']==[{'start':'08:00','end':'10:00'}]
+        assert observer.history.days['2026-11-22']['events']==[True]*48
+        assert control.model.samples==[.3]*12 and control.model.threshold==.2
+        for key in (runtime_key,observation_key):
+            path=Path(self.directory.name)/'.storage'/key
+            raw=json.loads(await self.hass.async_add_executor_job(path.read_text))
+            assert raw['version']==2 and raw['data']['schema_version']==2
+        await async_unload_entry(self.hass,self.entry)
+        await async_setup_entry(self.hass,self.entry)
+        assert self.hass.data[DOMAIN][self.entry.entry_id].runtime.settings_revision==5
+        assert self.service_calls==[]
+
+    async def test_unknown_newer_storage_is_not_overwritten(self):
+        from homeassistant.helpers.storage import Store
+        from homeassistant.exceptions import UnsupportedStorageVersionError
+        key=f'{DOMAIN}.{self.entry.entry_id}'
+        future=Store(self.hass,3,key)
+        original={'schema_version':3,'enabled':False}
+        await future.async_save(original)
+        with self.assertRaises(UnsupportedStorageVersionError):
+            await async_setup_entry(self.hass,self.entry)
+        assert await future.async_load()==original
+        assert self.service_calls==[]
 
     async def test_panel_is_shared_and_not_removed_until_last_entry_unloads(self):
         await async_setup_entry(self.hass, self.entry)

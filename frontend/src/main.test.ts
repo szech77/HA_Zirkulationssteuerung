@@ -72,4 +72,15 @@ describe('HA custom panel bridge', () => {
     expect(callWS).toHaveBeenCalledTimes(1)
   })
 
+  it('connects the visible history import button to the administrator WebSocket command', async () => {
+    const initial=entry(); const loading=entry(); loading.history_import!.state='loading'
+    const callWS=vi.fn().mockResolvedValueOnce({entries:[initial]}).mockResolvedValueOnce({started:true}).mockResolvedValueOnce({entries:[loading]})
+    const panel=document.createElement('warmwasser-panel') as WarmwasserPanel
+    panel.hass={callWS}; document.body.append(panel); await flushPromises()
+    const button=Array.from(panel.shadowRoot!.querySelectorAll('button')).find(b=>b.textContent==='HA-Historie erneut einlesen')!
+    button.click(); await flushPromises()
+    expect(callWS).toHaveBeenNthCalledWith(2,{type:'warmwasser_zirkulation/import_history',entry_id:initial.entry_id})
+    expect(panel.shadowRoot!.textContent).toContain('HA-Historie wird eingelesen')
+  })
+
 })

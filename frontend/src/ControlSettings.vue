@@ -10,7 +10,7 @@ const saving = ref(false)
 const message = ref('')
 const error = ref('')
 const conflict = computed(() => revision.value !== props.entry.settings_revision)
-const days = [ ['mon','Montag'], ['tue','Dienstag'], ['wed','Mittwoch'], ['thu','Donnerstag'], ['fri','Freitag'], ['sat','Samstag'], ['sun','Sonntag'], ['holiday','Feiertage'] ]
+const days = [ ['mon','Montag'], ['tue','Dienstag'], ['wed','Mittwoch'], ['thu','Donnerstag'], ['fri','Freitag'], ['sat','Samstag'], ['sun_holiday','Sonn-/Feiertage'] ]
 watch(() => props.entry.settings_revision, () => { if (!dirty.value && !saving.value) reset() })
 function reset() {
   draft.value = clone(props.entry.settings); revision.value = props.entry.settings_revision
@@ -35,7 +35,7 @@ async function save() {
 <template>
   <section class="control-settings" aria-label="Zirkulation konfigurieren">
     <h3>Konfiguration · Freigabezeiten</h3>
-    <p>Freigabezeiten erlauben bedarfsabhängige Starts. Die Pumpe läuft darin nicht dauerhaft. Es gilt die Home-Assistant-Zeitzone.</p>
+    <p>Freigabezeiten erlauben bedarfsabhängige und gelernte vorausschauende Starts. Die Pumpe läuft darin nicht dauerhaft. Es gilt die Home-Assistant-Zeitzone.</p>
     <form @submit.prevent="save" @input="edited" @change="edited">
       <fieldset :disabled="saving">
         <legend>Betriebsart</legend>
@@ -44,7 +44,7 @@ async function save() {
       </fieldset>
       <fieldset :disabled="saving">
         <legend>Wochenplan</legend>
-        <p>Ohne Zeitfenster ist der Tag gesperrt. Feiertage ersetzen den jeweiligen Wochentag; dafür Land und Region unter „Geräte &amp; Sensoren“ festlegen.</p>
+        <p>Ohne Zeitfenster ist der Tag gesperrt. Sonn- und Feiertage verwenden dieselben Zeitfenster. Für gesetzliche Feiertage Land und Region unter „Geräte &amp; Sensoren“ festlegen.</p>
         <div v-for="[key, label] in days" :key="key" class="schedule-day" :data-day="key">
           <h4>{{ label }}</h4>
           <p v-if="!draft.schedule[key].length" class="blocked-day">Gesperrt · keine Freigabe</p>

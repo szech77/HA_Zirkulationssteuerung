@@ -30,7 +30,7 @@ export class WarmwasserPanel extends HTMLElement {
     const target = document.createElement('div')
     root.append(stylesheet, target)
     this.state = reactive({ darkMode: Boolean(this.currentHass?.themes?.darkMode), entries: [], loading: true, error: null, updatedAt: null })
-    this.app = createApp(PanelApp, { state: this.state, saveSettings: (id: string, settings: ControlSettings, revision: number) => this.configure(id, settings, revision), onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
+    this.app = createApp(PanelApp, { state: this.state, importHistory: (id: string) => this.importHistory(id), saveSettings: (id: string, settings: ControlSettings, revision: number) => this.configure(id, settings, revision), onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
     this.app.mount(target)
     this.timer = window.setInterval(() => { if (document.visibilityState !== 'hidden') void this.refresh() }, 15_000)
     void this.refresh()
@@ -47,6 +47,14 @@ export class WarmwasserPanel extends HTMLElement {
   }
 
   async configure(entryId: string, settings: ControlSettings, revision: number) {
+    return this.command({type:'warmwasser_zirkulation/configure',entry_id:entryId,settings,revision})
+  }
+
+  async importHistory(entryId: string) {
+    return this.command({type:'warmwasser_zirkulation/import_history',entry_id:entryId})
+  }
+
+  private async command(message: {type:string; [key:string]:unknown}) {
     const hass = this.currentHass
     if (!hass || !this.isConnected) throw new Error('unavailable')
     if (this.configuring) throw new Error('busy')
@@ -54,7 +62,7 @@ export class WarmwasserPanel extends HTMLElement {
     this.statusSequence++
     const generation = this.generation
     try {
-      await hass.callWS({ type: 'warmwasser_zirkulation/configure', entry_id: entryId, settings, revision })
+      await hass.callWS(message)
       const response = await hass.callWS<{ entries: EntryStatus[] }>({ type: 'warmwasser_zirkulation/status' })
       if (generation !== this.generation || !this.state || !Array.isArray(response.entries)) throw new Error('unavailable')
       this.state.entries = response.entries

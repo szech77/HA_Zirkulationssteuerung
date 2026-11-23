@@ -10,8 +10,7 @@ Für den Betrieb werden benötigt:
 - ein in Home Assistant erreichbarer Pumpenschalter
 - eine lokale HA-Zeitzone, die zur Anlage passt
 
-Die konkrete Pumpen-Entity, Home-Assistant-Version, das Bundesland und eine mögliche
-InfluxDB-Konfiguration müssen vor der Einrichtung an der Anlage geprüft werden. Diese
+Die konkrete Pumpen-Entity, Home-Assistant-Version, das Bundesland und die Recorder-Aufbewahrung müssen vor der Einrichtung an der Anlage geprüft werden. Diese
 Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen IDs.
 
 ## 2. Installation als Custom Integration
@@ -111,13 +110,13 @@ Optional beziehungsweise für die spätere Planung relevant:
 - Puffersensor
 - Land und Bundesland für die Feiertagslogik
 - Home-Assistant-Zeitzone
-- InfluxDB-Verfügbarkeit, Rohdatenauflösung, Filter und Aufbewahrung
+- Recorder-Aufbewahrung und Aufzeichnung von Vorlaufsensor und Pumpenschalter
 - tägliches Maximum automatischer Starts
 - Warmwasser-Schwellwert in °C
 
-Keine Zugangsdaten in YAML, Dashboard-Dateien oder Quellcode eintragen. Falls InfluxDB
-verwendet wird, müssen Authentifizierung und Berechtigungen ausschließlich über die
-Home-Assistant-Integration beziehungsweise deren Secret-Verwaltung erfolgen.
+Keine Zugangsdaten in YAML, Dashboard-Dateien oder Quellcode eintragen. Der Import
+verwendet HAs Recorder-API ohne zusätzliche Datenbank-Zugangsdaten. Eine direkte
+InfluxDB-Anbindung ist derzeit nicht implementiert.
 
 ### Freigabezeiten und Betriebsart im Dashboard
 
@@ -131,13 +130,15 @@ behalten; **Gespeicherten Stand neu laden** übernimmt den aktuellen Stand.
   Starts. Ein noch laufender eigener Automatiklauf wird beendet. Manuelle oder von
   anderen Automationen gestartete Pumpenläufe werden nicht übernommen oder beendet.
 - **Steuerung aktiv:** Ein erkannter Zapfvorgang kann die Pumpe innerhalb der
-  Freigabezeiten für die konfigurierte Laufzeit starten. Die Freigabezeiten sind
-  keine Dauerlaufzeiten und erzeugen selbst keine festen täglichen Starttermine.
-- **Montag bis Sonntag:** Je Tag bis zu zwölf Abschnitte hinzufügen oder entfernen,
+  Freigabezeiten für die konfigurierte Laufzeit starten. Zusätzlich sind gelernte
+  vorausschauende Starts bei ausreichender Messbasis möglich. Die Freigabezeiten
+  selbst sind keine Dauerlaufzeiten oder festen täglichen Starttermine.
+- **Montag bis Samstag:** Je Tag bis zu zwölf Abschnitte hinzufügen oder entfernen,
   beispielsweise Montag 06:00–08:00 und 18:00–21:00. Eine leere Liste sperrt den Tag.
-- **Feiertage:** Ersetzt an gesetzlichen Feiertagen der gewählten Region den normalen
-  Wochentag. Ohne konfigurierten Feiertagskalender gilt der Wochenplan. Eine leere
-  Feiertagsliste sperrt erkannte Feiertage.
+- **Sonn-/Feiertage:** Gemeinsame Freigabe für Sonntage und gesetzliche Feiertage der
+  gewählten Region. Ein Feiertag ersetzt den regulären Wochentag; ein Sonntag zählt
+  auch bei Überschneidung nur einmal. Ohne Kalender gelten hier weiterhin Sonntage.
+  Eine leere Liste sperrt Sonntage und erkannte Feiertage.
 - **Urlaubsprofil:** Manuell aktivieren/deaktivieren. Solange aktiv, gelten ausschließlich
   dessen tägliche Abschnitte, auch an Feiertagen. Ohne Abschnitte bleibt die Zirkulation
   im Urlaub gesperrt. Die normale Wochenplanung bleibt gespeichert.
@@ -191,12 +192,12 @@ Erkennungsschwelle, Lernbasis, Startkontingent und die Kalenderauswahl. Es lädt
 Werte über die bestehende HA-Anmeldung und aktualisiert sie alle 15 Sekunden.
 Verbindungsfehler blenden alte Messwerte aus und bieten einen erneuten Abruf an.
 
-Die Heatmap verwendet 48 halbstündliche Zellen für Montag bis Sonntag sowie eine
-separate Feiertagszeile. Bei eingerichtetem Kalender fallen Feiertage aus den
+Die Heatmap verwendet 48 halbstündliche Zellen für Montag bis Samstag sowie die
+gemeinsame Gruppe Sonn-/Feiertage. Bei eingerichtetem Kalender fallen Feiertage aus den
 normalen Wochentagszeilen heraus. Die Farbe zeigt den Anteil ausreichend beobachteter
 Tage mit mindestens einem erkannten Zapfvorgang, keine erfundenen Verbräuche.
 
-- Die Beobachtung beginnt ab Installation und wird pro Konfigurationseintrag unter
+- Live-Beobachtungen und aus HA importierte Historie werden pro Konfigurationseintrag unter
   `.storage/warmwasser_zirkulation.<entry_id>.observations` gespeichert.
 - Ein Tag zählt in einer Zelle erst ab 15 Minuten gültiger Messungen bei ausgeschalteter
   Pumpe. Messlücken über acht Minuten werden nicht überbrückt; unbekannte Pumpenzustände,
@@ -204,8 +205,8 @@ Tage mit mindestens einem erkannten Zapfvorgang, keine erfundenen Verbräuche.
 - Unter drei beobachteten Tagen ist eine Quote schraffiert als vorläufig markiert.
   Ohne Messbasis bleibt die Zelle grau. Anklicken zeigt die zugrunde liegenden Zahlen.
 - Die Historie ist auf 180 Tage begrenzt. Regionale Feiertage richten sich nach der
-  Kalenderbibliothek und der gewählten Region. Ohne Länderwahl bleibt die Feiertagszeile
-  ausdrücklich unkonfiguriert.
+  Kalenderbibliothek und der gewählten Region. Ohne Länderwahl werden in der
+  gemeinsamen Gruppe nur Sonntage zugeordnet.
 - Die Beobachtung kalibriert die Erkennung, schaltet die Pumpe jedoch nicht.
 
 Bei manuellen Updates den **gesamten** Integrationsordner einschließlich des gebauten
@@ -283,3 +284,56 @@ Tokens oder vollständigen externen Payloads enthalten.
 Vor dem Entfernen persistierte Integrationsdaten und Dashboard-Konfiguration prüfen,
 falls sie für eine spätere Wiederinstallation benötigt werden.
 
+
+
+## HA-Historie als Lernstart und vorausschauendes Vorwärmen
+
+Bei unzureichender Messbasis liest die Integration nach dem Start automatisch die
+letzten **28 abgeschlossenen lokalen Kalendertage** aus dem HA-Recorder. Vorlaufsensor
+und Pumpenschalter kommen aus der vorhandenen Konfiguration. Die Datenbankabfragen
+und historische Auswertung laufen in HAs Recorder-Executor, in Tagesblöcken und
+unabhängig vom Browser. Die Live-Beobachtung läuft parallel weiter. Es werden keine
+historischen Pumpenbefehle nachgeholt und keine Produktionssysteme umkonfiguriert.
+
+Im Dashboard zeigt **Historie und Lernplanung** Fortschritt, zusätzliche Lernereignisse,
+Fehler und den nächsten Muster-Vorschlag. **HA-Historie erneut einlesen** startet einen
+erneuten Import über die authentifizierte Administratorverbindung. Wiederholungen
+zählen Tageszellen und Lernereignisse nicht doppelt. Ein gespeicherter Tages-Checkpoint
+erlaubt die Wiederaufnahme nach Neustart oder Fehler; importierte Daten liegen wie
+Live-Daten in `.storage/warmwasser_zirkulation.<Eintrags-ID>.observations` und gehören
+zum Backup der HA-Konfiguration. Sensor-, Pumpen- oder Zeitzonenwechsel beginnen eine
+neue Beobachtungsbasis, damit verschiedene Quellen nicht vermischt werden.
+
+Wenn keine historischen Pumpenaufzeichnungen vorliegen, wird **Pumpe aus** angenommen.
+Diese ausdrücklich gewählte Annahme wird im Dashboard angezeigt. Aufgezeichnete
+Pumpenläufe und unbekannte Zustände werden weiterhin ausgeschlossen. Messlücken über
+acht Minuten, fehlende Temperaturen und ungültige Werte liefern keine Messabdeckung.
+Es werden nur Recorder-Zustandsdaten gelesen; langfristige Statistikmittelwerte
+ersetzen keine Temperaturverläufe. Daher ist nur die tatsächlich noch aufbewahrte
+Historie nutzbar. Der Import vergrößert nicht HAs Aufbewahrung und füllt keine
+fehlenden Temperaturwerte auf. Bei fehlendem Recorder lernt die Integration live.
+
+Für Musterstarts braucht ein halbstündlicher Abschnitt mindestens **drei gültig
+beobachtete Tage** in derselben Tagesgruppe, Entnahmen an **mindestens 60 %** dieser
+Tage und mindestens zwei Tage mit genauer Entnahmeminute. Die typische Entnahmezeit
+ist der Median dieser Minuten. Vor dieser Zeit wird um die eingestellte Pumpenlaufzeit
+vorgewärmt. Die gesamte Laufzeit muss in eine Freigabe passen. Vergangene Starttermine
+werden nicht nachgeholt; eine Verzögerung von höchstens 30 Sekunden durch die laufende
+Prüfung ist zulässig. Vorschläge werden für bis zu sieben Tage berechnet.
+
+Muster- und Bedarfsstarts teilen Tageslimit und mindestens **20 Minuten Abstand**.
+Jeder Vorschlag wird höchstens einmal gestartet und die Ausführung über Neustarts
+hinweg dedupliziert. Frische Live-Temperaturen und ein bestätigter ausgeschalteter
+Pumpenzustand bleiben Voraussetzungen. Der Historienimport setzt die Betriebsart
+nicht auf aktiv. Vor der Aktivierung die Muster prüfen, insbesondere bei fehlender
+Pumpenhistorie.
+
+Sonntage und gesetzliche Feiertage bilden in Heatmap, Lernplanung und Zeitfreigaben
+**Sonn-/Feiertage**. Vorhandene Tagesbeobachtungen bleiben erhalten und werden neu
+gruppiert. Beim Update werden getrennte Sonntags-/Feiertagsfreigaben durch ihre
+**Schnittmenge** ersetzt. Unterschiedliche oder leere alte Listen können die neue
+Gruppe sperren. Die Migration läuft selbstständig beim Laden; neue Stunden werden dadurch nicht
+freigegeben. Beide Speicherdateien verwenden Schema-Version 2, zusätzlich zur
+HA-Store-Version 2. Ältere Version-1-Daten ohne interne Versionsangabe werden
+validiert und automatisch übertragen. Unbekannte neuere Versionen und beschädigte
+Daten werden abgelehnt und nicht überschrieben. Wiederholtes Laden migriert nicht erneut.

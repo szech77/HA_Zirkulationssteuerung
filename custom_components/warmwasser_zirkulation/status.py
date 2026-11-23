@@ -57,7 +57,9 @@ def entry_status(hass, entry, coordinator, observer=None, now=None, *, include_h
             'learning_ready': len(coordinator.model.samples) >= coordinator.model.min_samples,
             'daily_starts': coordinator.runtime.daily_starts, 'max_starts': coordinator.max_starts,
             'remaining_starts': max(0, coordinator.max_starts - coordinator.runtime.daily_starts),
-            'runtime_seconds': coordinator.runtime_seconds, 'next_start': None,
+            'runtime_seconds': coordinator.runtime_seconds,
+            'next_start': observer.next_prediction.at.isoformat() if getattr(observer,'next_prediction',None) else None,
+            'history_import': dict(observer.import_info) if observer is not None else None,
             'country': configuration.get('country'), 'subdivision': configuration.get('subdivision'),
             'heatmap': observer.snapshot() if observer is not None and include_heatmap else None}
 

@@ -1,5 +1,7 @@
 export interface TimeWindow { start: string; end: string }
 export interface ControlSettings { mode: 'monitoring' | 'active'; schedule: Record<string, TimeWindow[]>; vacation_active: boolean; vacation_windows: TimeWindow[] }
+export type ImportHistory = (entryId: string) => Promise<void>
+export interface HistoryImport {state:'idle'|'loading'|'complete'|'unavailable'|'error'; days:number; events:number; assumed_pump_off:boolean; until:string|null}
 export type SaveSettings = (entryId: string, settings: ControlSettings, revision: number) => Promise<void>
 export interface Reading { entity_id: string; name: string; value: number | null; unit: string | null; stale: boolean; updated_at: string | null }
 export interface HeatCell { observed_days: number; event_days: number; partial_days: number; ratio: number | null; sufficient: boolean; level: number | null }
@@ -10,6 +12,7 @@ export interface EntryStatus {
   threshold: number; sample_size: number; learning_ready: boolean; daily_starts: number;
   max_starts: number; remaining_starts: number; runtime_seconds: number; next_start: string | null;
   settings: ControlSettings; settings_revision: number;
+  history_import: HistoryImport | null;
   country: string | null; subdivision: string | null; heatmap: Heatmap | null;
 }
 export interface DashboardState { darkMode?: boolean; entries: EntryStatus[]; loading: boolean; error: string | null; updatedAt: string | null }
