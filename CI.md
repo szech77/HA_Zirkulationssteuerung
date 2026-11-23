@@ -89,3 +89,11 @@ Unter Python 3.12/3.13 bleibt die HA-Testinstallation per Versionsmarker ausgeno
 Die Frontend-Prüfungen und der Release-Build verwenden Node 22.22.2, passend zur
 Mindestversion der DOM-Testumgebung. Der npm-Audit bleibt aktiv; gezielte
 Unterpaket-Overrides beheben die Formatter-Befunde, ohne Scanner zu unterdrücken.
+
+
+`holidays` wird zur Laufzeit mit Home Assistant geteilt. Manifest und `pyproject.toml`
+fordern deshalb `holidays>=0.108`, ohne HAs Paketversion exakt festzuschreiben.
+`requirements-ha-test.txt` pinnt für die Tests 0.108, passend zur Workday-Integration
+in HA 2026.11.2. Bei Updates der HA-Testversion auch diesen Test-Pin prüfen.
+Die Metadatenprüfungen testen die Manifest-Reihenfolge, übereinstimmende
+Projekt-/Manifest-Anforderungen und die Kompatibilität mit dem HA-Teststand.
