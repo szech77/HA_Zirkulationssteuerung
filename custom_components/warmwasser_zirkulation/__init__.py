@@ -53,13 +53,15 @@ async def async_unload_entry(hass, entry) -> bool:
 
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
+    # Stop owned hardware before observation persistence can fail during unload.
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coordinator is not None:
+        await coordinator.async_stop()
     observer = hass.data.get(OBSERVERS, {}).get(entry.entry_id)
     if observer is not None:
         await observer.async_stop()
         hass.data[OBSERVERS].pop(entry.entry_id, None)
-    coordinator = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    if coordinator is not None:
-        await coordinator.async_stop()
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     if not hass.data.get(DOMAIN):
         await panel.async_remove_frontend(hass)
     return True

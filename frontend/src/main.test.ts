@@ -33,4 +33,33 @@ describe('HA custom panel bridge', () => {
     document.body.append(panel); panel.remove(); finish({entries:[entry()]}); await flushPromises()
     expect(panel.shadowRoot!.querySelector('.system-card')).toBeNull()
   })
+  it('saves settings through the authenticated HA connection and reloads the confirmed state', async () => {
+    const initial=entry(); const updated=entry(); updated.settings.mode='active'; updated.settings_revision=1; updated.enabled=true; updated.demand_automation=true
+    const callWS=vi.fn().mockResolvedValueOnce({entries:[initial]}).mockResolvedValueOnce({revision:1}).mockResolvedValueOnce({entries:[updated]})
+    const panel=document.createElement('warmwasser-panel') as WarmwasserPanel
+    panel.hass={callWS}; document.body.append(panel); await flushPromises()
+    const root=panel.shadowRoot!
+    const configure=Array.from(root.querySelectorAll('button')).find(button=>button.textContent==='Konfiguration')!
+    configure.click(); await flushPromises()
+    const mode=root.querySelector('select')!; mode.value='active'; mode.dispatchEvent(new Event('change',{bubbles:true}))
+    await flushPromises()
+    root.querySelector('form')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))
+    await flushPromises()
+    expect(callWS).toHaveBeenNthCalledWith(2,{type:'warmwasser_zirkulation/configure',entry_id:initial.entry_id,settings:updated.settings,revision:0})
+    expect(callWS).toHaveBeenNthCalledWith(3,{type:'warmwasser_zirkulation/status'})
+    expect(panel.shadowRoot!.textContent).toContain('Steuerfreigabe')
+  })
+
+  it('ignores an older status poll arriving after settings were saved', async () => {
+    let finish:(value:unknown)=>void=()=>{}
+    const initial=entry(); const updated=entry(); updated.enabled=true; updated.demand_automation=true; updated.settings.mode='active'; updated.settings_revision=1
+    const callWS=vi.fn().mockResolvedValueOnce({entries:[initial]}).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve})).mockResolvedValueOnce({revision:1}).mockResolvedValueOnce({entries:[updated]})
+    const panel=document.createElement('warmwasser-panel') as WarmwasserPanel
+    panel.hass={callWS}; document.body.append(panel); await flushPromises()
+    const poll=panel.refresh()
+    await panel.configure(initial.entry_id, updated.settings, 0)
+    finish({entries:[initial]}); await poll; await flushPromises()
+    expect(panel.shadowRoot!.textContent).toContain('Steuerfreigabe ist gesetzt')
+  })
+
 })

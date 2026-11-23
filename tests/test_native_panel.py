@@ -14,7 +14,7 @@ from homeassistant.exceptions import Unauthorized, ConfigEntryNotReady
 from homeassistant.components import frontend
 from custom_components.warmwasser_zirkulation import async_setup_entry, async_unload_entry
 from custom_components.warmwasser_zirkulation.const import DOMAIN
-from custom_components.warmwasser_zirkulation.frontend import websocket_status
+from custom_components.warmwasser_zirkulation.frontend import websocket_status, websocket_configure
 from custom_components.warmwasser_zirkulation.observations import OBSERVERS
 from custom_components.warmwasser_zirkulation.sensor import WarmwaterReasonSensor
 from custom_components.warmwasser_zirkulation.switch import WarmwaterAutomationSwitch
@@ -32,7 +32,9 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         self.asset_patch.start()
         self.addCleanup(self.asset_patch.stop)
         self.service_calls = []
-        async def service(call): self.service_calls.append(call)
+        async def service(call):
+            self.service_calls.append(call)
+            self.hass.states.async_set(call.data['entity_id'], 'on' if call.service == 'turn_on' else 'off')
         self.hass.services.async_register('switch', 'turn_on', service)
         self.hass.services.async_register('switch', 'turn_off', service)
         self.entry = SimpleNamespace(entry_id='synthetic-panel', title='Synthetic circulation',
@@ -78,6 +80,72 @@ class TestNativePanel(IsolatedAsyncioTestCase):
             with self.assertRaises(Unauthorized):
                 websocket_status(self.hass, connection, {'id': 1, 'type': DOMAIN + '/status'})
             connection.send_result.assert_not_called()
+
+    async def test_dashboard_write_permissions_validation_conflict_and_persistence(self):
+        from custom_components.warmwasser_zirkulation.domain import default_schedule
+        await async_setup_entry(self.hass, self.entry)
+        values = {'mode':'active', 'schedule':default_schedule(), 'vacation_active':False, 'vacation_windows':[]}
+        values['schedule']['mon'] = [{'start':'06:00', 'end':'08:00'}, {'start':'18:00', 'end':'21:00'}]
+        message = {'id':2, 'type': DOMAIN+'/configure', 'entry_id':self.entry.entry_id, 'revision':0, 'settings':values}
+        for user in (None, SimpleNamespace(is_admin=False)):
+            denied = SimpleNamespace(user=user, send_result=Mock(), send_error=Mock())
+            with self.assertRaises(Unauthorized): websocket_configure(self.hass, denied, message)
+            denied.send_result.assert_not_called()
+        completed = asyncio.Event()
+        connection = SimpleNamespace(user=SimpleNamespace(is_admin=True),
+            send_result=Mock(side_effect=lambda *args: completed.set()),
+            send_error=Mock(side_effect=lambda *args: completed.set()))
+        async def request(payload):
+            completed.clear()
+            websocket_configure(self.hass, connection, payload)
+            await asyncio.wait_for(completed.wait(), timeout=20)
+        await request(message)
+        connection.send_error.assert_not_called()
+        connection.send_result.assert_called_with(2, {'revision':1})
+        control = self.hass.data[DOMAIN][self.entry.entry_id]
+        assert control.settings() == values
+        assert (await control.store.load())['schedule']['mon'] == values['schedule']['mon']
+        await request(message)
+        assert connection.send_error.call_args.args[1] == 'settings_conflict'
+        invalid = dict(message, revision=1, settings=dict(values, vacation_active='true'))
+        await request(invalid)
+        assert connection.send_error.call_args.args[1] == 'invalid_settings'
+        await request(dict(message, entry_id='missing'))
+        assert connection.send_error.call_args.args[1] == 'entry_unavailable'
+        assert self.service_calls == []
+
+    async def test_control_tick_starts_and_stops_without_browser_requests(self):
+        from custom_components.warmwasser_zirkulation.domain import PumpState, Sample
+        from homeassistant.util import dt as dt_util
+        await async_setup_entry(self.hass, self.entry)
+        observer = self.hass.data[OBSERVERS][self.entry.entry_id]
+        control = observer.coordinator
+        values = control.settings(); values['mode']='active'
+        values['schedule'] = {day:[{'start':'00:00','end':'24:00'}] for day in values['schedule']}
+        await control.async_configure(values, 0)
+        at = dt_util.utcnow().replace(hour=12, minute=0)
+        observer.calendar_year = at.year
+        observer.control_samples = [Sample(at-timedelta(minutes=2),40,PumpState.OFF),Sample(at,45,PumpState.OFF)]
+        await observer._control_tick(at)
+        assert self.hass.states.get('switch.test_pump').state == 'on'
+        assert control.runtime.pump_until is not None
+        await observer._control_tick(at+timedelta(seconds=120))
+        assert self.hass.states.get('switch.test_pump').state == 'off'
+        assert control.runtime.pump_until is None
+        assert [call.service for call in self.service_calls] == ['turn_on','turn_off']
+
+    async def test_observation_save_failure_during_unload_does_not_leave_owned_pump_running(self):
+        from homeassistant.util import dt as dt_util
+        await async_setup_entry(self.hass, self.entry)
+        control = self.hass.data[DOMAIN][self.entry.entry_id]
+        control.runtime.pump_until = dt_util.utcnow() + timedelta(minutes=2)
+        self.hass.states.async_set('switch.test_pump', 'on')
+        observer = self.hass.data[OBSERVERS][self.entry.entry_id]
+        with patch.object(observer.store, 'async_save', side_effect=OSError('synthetic storage error')):
+            with self.assertRaises(OSError):
+                await async_unload_entry(self.hass, self.entry)
+        assert self.hass.states.get('switch.test_pump').state == 'off'
+        assert control.runtime.pump_until is None
 
     async def test_panel_is_shared_and_not_removed_until_last_entry_unloads(self):
         await async_setup_entry(self.hass, self.entry)

@@ -35,3 +35,11 @@ Nie loggen:
 Logs müssen auch dann sicher bleiben, wenn Eingaben fehlerhaft oder von externen
 Quellen manipuliert sind. Werte aus Home Assistant, InfluxDB und dem Frontend werden
 vor Verwendung validiert.
+
+
+Die Dashboard-Konfiguration protokolliert `control_settings_saved` ohne Payload;
+Speicherfehler verwenden `settings_save_failed`. Zustandswechsel der Steuerung
+tragen dieselben Gründe wie Dashboard und Betriebssensor, darunter `outside_schedule`,
+`waiting_for_demand`, `daily_limit_reached`, `calendar_unavailable` und
+`pump_unreachable`. Unveränderte Steuerzustände werden dedupliziert.
+Adapterfehler verwenden `control_failed`, die Wiederaufnahme `control_restored`.

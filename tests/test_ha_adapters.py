@@ -54,10 +54,13 @@ def ha_boundary(monkeypatch):
         async def async_stop(self): pass
     observations.ObservationMonitor = Observer
     monkeypatch.setitem(sys.modules, observations.__name__, observations)
+    pump_state = SimpleNamespace(state='off')
+    async def confirmed_service(domain, service, data, **kwargs):
+        pump_state.state = 'on' if service == 'turn_on' else 'off'
     hass = SimpleNamespace(
         data={}, config_entries=SimpleNamespace(async_forward_entry_setups=AsyncMock(),
-            async_unload_platforms=AsyncMock(return_value=True)), services=SimpleNamespace(async_call=AsyncMock()),
-        states=SimpleNamespace(get=lambda entity_id: SimpleNamespace(state='off')),
+            async_unload_platforms=AsyncMock(return_value=True)), services=SimpleNamespace(async_call=AsyncMock(side_effect=confirmed_service)),
+        states=SimpleNamespace(get=lambda entity_id: pump_state),
     )
     entry = SimpleNamespace(entry_id='synthetic-entry', data={
         'pump_entity': 'switch.test_pump', 'runtime_seconds': 90, 'max_starts': 3,
@@ -93,6 +96,7 @@ async def test_started_run_survives_json_roundtrip_without_double_start(ha_bound
     hass, entry, files = ha_boundary
     await async_setup_entry(hass, entry)
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.runtime.schedule = {day: [{"start": "00:00", "end": "24:00"}] for day in coordinator.runtime.schedule}
     coordinator.runtime.enabled = coordinator.runtime.demand_automation = True
     now = datetime(2026, 1, 1, 10, tzinfo=timezone.utc)
     assert await coordinator.process(samples(now), now) == 'started'
@@ -100,9 +104,9 @@ async def test_started_run_survives_json_roundtrip_without_double_start(ha_bound
         'switch', 'turn_on', {'entity_id': 'switch.test_pump'}, blocking=True,
     )
     assert json.loads(files[f'{DOMAIN}.{entry.entry_id}'])['pump_until'] == (now + timedelta(seconds=90)).isoformat()
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
-    restored = hass.data[DOMAIN][entry.entry_id]
+    # Simulate abrupt HA restart: graceful unload now stops an owned run.
+    restored = CirculationCoordinator.from_home_assistant(hass, entry)
+    await restored.async_start()
     assert restored.runtime.pump_until == now + timedelta(seconds=90)
     assert restored.runtime.daily_starts == 1
     assert await restored.process(samples(now), now) == 'pump_already_running'
@@ -126,7 +130,9 @@ async def test_entries_do_not_share_runtime_state(ha_boundary):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('data', [[], True, 'invalid', {'enabled': 'true'},
-    {'demand_automation': 1}, {'daily_starts': -1}, {'daily_starts': True},
+    {'demand_automation': 1}, {'control_fault':'true'}, {'vacation_active':1},
+    {'schedule':{}}, {'settings_revision':True}, {'last_trigger_at':'2026-01-01T10:00:00'},
+    {'starts_date':'invalid'}, {'daily_starts': -1}, {'daily_starts': True},
     {'last_reason': []}, {'pump_until': 123}, {'pump_until': 'not-a-date'},
     {'pump_until': '2026-01-01T10:00:00'}])
 async def test_invalid_persisted_state_cannot_start_entry(ha_boundary, data):
@@ -169,7 +175,9 @@ async def test_gateway_refuses_starts_unless_pump_is_confirmed_off(ha_boundary, 
         await gateway.turn_on('switch.test_pump')
     hass.services.async_call.assert_not_awaited()
     # Unknown readings must not prevent an explicitly requested stop command.
-    await gateway.turn_off('switch.test_pump')
+    # The stop is sent even when confirmation remains unknown.
+    with pytest.raises(ValueError, match='not confirmed'):
+        await gateway.turn_off('switch.test_pump')
     hass.services.async_call.assert_awaited_once_with(
         'switch', 'turn_off', {'entity_id': 'switch.test_pump'}, blocking=True,
     )
@@ -193,14 +201,31 @@ async def test_failed_ha_service_is_not_persisted_as_success(ha_boundary, caplog
     hass.services.async_call.side_effect = RuntimeError('synthetic service failure')
     coordinator = CirculationCoordinator.from_home_assistant(hass, entry)
     await coordinator.async_start()
+    coordinator.runtime.schedule = {day: [{"start": "00:00", "end": "24:00"}] for day in coordinator.runtime.schedule}
     coordinator.runtime.enabled = coordinator.runtime.demand_automation = True
     now = datetime.now(timezone.utc)
     assert await coordinator.process(samples(now), now) == 'pump_unreachable'
     stored = json.loads(files[f'{DOMAIN}.{entry.entry_id}'])
     assert stored['daily_starts'] == 0
-    assert stored['pump_until'] is None
+    # Failed stop confirmation retains the recovery deadline rather than hiding it.
+    assert stored['pump_until'] == (now + timedelta(seconds=90)).isoformat()
     assert stored['last_reason'] == 'pump_unreachable'
     assert 'synthetic service failure' not in caplog.text
     failure = next(record for record in caplog.records if hasattr(record, 'error_type'))
     assert failure.reason == 'pump_unreachable'
     assert failure.error_type == 'RuntimeError'
+
+
+@pytest.mark.asyncio
+async def test_changed_live_pump_state_never_stops_someone_elses_run(ha_boundary):
+    hass, entry, _ = ha_boundary
+    control = CirculationCoordinator.from_home_assistant(hass, entry)
+    await control.async_start()
+    values = control.settings(); values['mode'] = 'active'
+    values['schedule'] = {day:[{'start':'00:00','end':'24:00'}] for day in values['schedule']}
+    await control.async_configure(values, 0)
+    hass.states.get('switch.test_pump').state = 'on'
+    at = datetime.now(timezone.utc)
+    assert await control.process(samples(at), at) == 'pump_state_unknown'
+    assert control.runtime.pump_until is None
+    hass.services.async_call.assert_not_awaited()

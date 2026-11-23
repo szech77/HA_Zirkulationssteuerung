@@ -48,6 +48,7 @@ async def test_missing_fresh_value_pauses_automation():
 async def test_unreachable_pump_is_fail_closed_and_logged_as_reason():
     pump, store = Pump(fails=True), Store()
     coordinator = CirculationCoordinator(pump, store, "switch.pump")
+    coordinator.runtime.schedule = {day: [{"start": "00:00", "end": "24:00"}] for day in coordinator.runtime.schedule}
     coordinator.runtime.enabled = True
     coordinator.runtime.demand_automation = True
     now = datetime.now(timezone.utc)
@@ -59,6 +60,7 @@ async def test_unreachable_pump_is_fail_closed_and_logged_as_reason():
 async def test_concurrent_trigger_does_not_double_start():
     pump, store = Pump(), Store()
     coordinator = CirculationCoordinator(pump, store, "switch.pump")
+    coordinator.runtime.schedule = {day: [{"start": "00:00", "end": "24:00"}] for day in coordinator.runtime.schedule}
     coordinator.runtime.enabled = True
     coordinator.runtime.demand_automation = True
     now = datetime.now(timezone.utc)

@@ -1,5 +1,6 @@
 """Serve the bundled Vue panel through authenticated Home Assistant APIs."""
 import asyncio
+import logging
 from hashlib import sha256
 from pathlib import Path
 
@@ -37,6 +38,7 @@ async def async_register_frontend(hass):
         if not state.get('resources_registered'):
             await hass.http.async_register_static_paths([StaticPathConfig(STATIC_URL, str(ASSET_DIRECTORY), False)])
             websocket_api.async_register_command(hass, websocket_status)
+            websocket_api.async_register_command(hass, websocket_configure)
             state['resources_registered'] = True
         if not state.get('panel_registered'):
             # Keep HA's configure gear connected to the native options dialog.
@@ -59,3 +61,28 @@ async def async_remove_frontend(hass):
 @websocket_api.async_response
 async def websocket_status(hass, connection, msg):
     connection.send_result(msg['id'], dashboard_status(hass))
+
+
+@websocket_api.websocket_command({vol.Required('type'): DOMAIN + '/configure',
+    vol.Required('entry_id'): str, vol.Required('revision'): int, vol.Required('settings'): dict})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_configure(hass, connection, msg):
+    coordinator = hass.data.get(DOMAIN, {}).get(msg['entry_id'])
+    if coordinator is None:
+        connection.send_error(msg['id'], 'entry_unavailable', 'Die Integration ist nicht geladen.')
+        return
+    try:
+        await coordinator.async_configure(msg['settings'], msg['revision'])
+    except ValueError as error:
+        conflict = str(error) == 'settings_conflict'
+        connection.send_error(msg['id'], 'settings_conflict' if conflict else 'invalid_settings',
+            'Die Konfiguration wurde inzwischen geändert. Neu laden und erneut bearbeiten.' if conflict else
+            'Zeitfenster prüfen: gültige Uhrzeiten, von vor bis, keine Überschneidungen, höchstens 12 Abschnitte pro Tag.')
+        return
+    except Exception as error:
+        logging.getLogger(__name__).error('Control settings could not be saved',
+            extra={'reason': 'settings_save_failed', 'error_type': type(error).__name__})
+        connection.send_error(msg['id'], 'save_failed', 'Die Konfiguration konnte nicht gespeichert werden.')
+        return
+    connection.send_result(msg['id'], {'revision': coordinator.runtime.settings_revision})

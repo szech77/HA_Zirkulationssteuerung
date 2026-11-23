@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 import re
 
 from .const import DOMAIN
+from .domain import default_schedule, validate_control_settings
 
 STORAGE_VERSION = 1
+
+
+class PumpStartRefused(ValueError):
+    """No start command was sent because the current pump is not confirmed off."""
+
 
 
 class HomeAssistantStateStore:
@@ -21,9 +28,23 @@ class HomeAssistantStateStore:
 
     @staticmethod
     def _validate(state: dict) -> None:
-        for key in ("enabled", "demand_automation"):
+        for key in ("enabled", "demand_automation", "control_fault"):
             if key in state and type(state[key]) is not bool:
                 raise ValueError("Invalid persisted automation flag")
+        validate_control_settings({"mode": "active" if state.get("enabled") and state.get("demand_automation") else "monitoring",
+            "schedule": state.get("schedule", default_schedule()), "vacation_active": state.get("vacation_active", False),
+            "vacation_windows": state.get("vacation_windows", [])})
+        if "settings_revision" in state and (type(state["settings_revision"]) is not int or state["settings_revision"] < 0):
+            raise ValueError("Invalid settings revision")
+        for key in ("starts_date", "last_trigger_at"):
+            if state.get(key) is not None:
+                if not isinstance(state[key], str):
+                    raise ValueError("Invalid persisted control date")
+                from datetime import date
+                if key == "starts_date":
+                    date.fromisoformat(state[key])
+                elif datetime.fromisoformat(state[key]).utcoffset() is None:
+                    raise ValueError("Invalid persisted trigger time")
         if "daily_starts" in state:
             count = state["daily_starts"]
             if type(count) is not int or count < 0:
@@ -75,10 +96,16 @@ class HomeAssistantPumpGateway:
         if service == "turn_on":
             state = self._hass.states.get(entity_id)
             if state is None or state.state != "off":
-                raise ValueError("Pump is not confirmed off")
-        await self._hass.services.async_call(
-            "switch", service, {"entity_id": entity_id}, blocking=True,
-        )
+                raise PumpStartRefused("Pump is not confirmed off")
+        async with asyncio.timeout(15):
+            await self._hass.services.async_call("switch", service, {"entity_id": entity_id}, blocking=True)
+            expected = "on" if service == "turn_on" else "off"
+            for _ in range(20):
+                confirmed = self._hass.states.get(entity_id)
+                if confirmed is not None and confirmed.state == expected:
+                    return
+                await asyncio.sleep(0.1)
+            raise ValueError("Pump command was not confirmed")
 
     async def turn_on(self, entity_id: str) -> None:
         await self._call(entity_id, "turn_on")

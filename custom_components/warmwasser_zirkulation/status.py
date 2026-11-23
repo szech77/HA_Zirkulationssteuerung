@@ -33,19 +33,24 @@ def entry_status(hass, entry, coordinator, observer=None, now=None, *, include_h
     reason = coordinator.runtime.last_reason
     if observer is not None and observer.problem:
         reason = observer.problem
-    elif not coordinator.runtime.enabled or not coordinator.runtime.demand_automation:
+    elif reason != 'pump_unreachable' and (not coordinator.runtime.enabled or not coordinator.runtime.demand_automation):
         reason = 'monitoring'
     if flow is None or flow['value'] is None or flow['stale']:
         reason = 'fresh_flow_value_missing'
     if pump is None or pump.state not in ('on', 'off'):
         reason = 'pump_state_unknown'
-    level = 'error' if reason == 'pump_unreachable' else (
-        'warning' if reason in ('fresh_flow_value_missing', 'pump_state_unknown', 'daily_limit_reached') else 'normal')
+    if getattr(observer, 'control_problem', None):
+        reason = observer.control_problem
+    if coordinator.runtime.control_fault:
+        reason = 'pump_unreachable'
+    level = 'error' if reason in ('pump_unreachable', 'control_failed') else (
+        'warning' if reason in ('fresh_flow_value_missing', 'pump_state_unknown', 'daily_limit_reached', 'calendar_unavailable') else 'normal')
     return {'entry_id': entry.entry_id, 'title': entry.title,
             'reason': reason, 'status_level': level, 'flow': flow,
             'buffer': sensor_status(hass, configuration.get('buffer_sensor'), now),
             'pump': {'entity_id': coordinator.pump_entity,
                      'state': pump.state if pump is not None and pump.state in ('on', 'off') else 'unknown'},
+            'settings': coordinator.settings(), 'settings_revision': coordinator.runtime.settings_revision,
             'enabled': coordinator.runtime.enabled,
             'demand_automation': coordinator.runtime.demand_automation,
             'threshold': coordinator.model.threshold, 'sample_size': len(coordinator.model.samples),

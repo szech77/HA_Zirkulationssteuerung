@@ -74,11 +74,12 @@ aber weiterhin in HA vorhandene Entitäten können ausgewählt bleiben.
 
 Spätere Änderungen sind unter **Einstellungen → Geräte & Dienste →
 Warmwasser-Zirkulation → Konfigurieren** möglich. Die vorhandene Auswahl ist
-vorbelegt. Der Link **Konfiguration** im Dashboard öffnet die Integrationsseite;
+vorbelegt. Der Link **Geräte & Sensoren** im Dashboard öffnet die Integrationsseite;
 das Zahnrad am gewünschten Eintrag öffnet den nativen Einstellungsdialog.
 Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
 Nach dem Speichern lädt HA die Integration mit den neuen Optionen neu.
-Die Konfiguration selbst führt keine Schaltbefehle aus.
+Die Sensor-/Kalenderkonfiguration führt selbst keine Einschaltbefehle aus. Beim
+Neuladen wird ein laufender, von der Integration gestarteter Pumpenlauf beendet.
 
 Danach kann im Schritt **Feiertagskalender** ein Land gewählt werden. Wenn das Land
 regionale Unterteilungen unterstützt, folgt **Bundesland / Region** mit einer
@@ -93,13 +94,53 @@ Optional beziehungsweise für die spätere Planung relevant:
 - Land und Bundesland für die Feiertagslogik
 - Home-Assistant-Zeitzone
 - InfluxDB-Verfügbarkeit, Rohdatenauflösung, Filter und Aufbewahrung
-- sieben Wochentagsfenster
 - tägliches Maximum automatischer Starts
 - Warmwasser-Schwellwert in °C
 
 Keine Zugangsdaten in YAML, Dashboard-Dateien oder Quellcode eintragen. Falls InfluxDB
 verwendet wird, müssen Authentifizierung und Berechtigungen ausschließlich über die
 Home-Assistant-Integration beziehungsweise deren Secret-Verwaltung erfolgen.
+
+### Freigabezeiten und Betriebsart im Dashboard
+
+Als HA-Administrator in der Seitenleiste **Warmwasser-Zirkulation → Konfiguration**
+öffnen. Die Einstellungen gelten getrennt pro Integrationseintrag und werden mit
+**Konfiguration speichern** dauerhaft übernommen, ohne die Integration neu zu laden.
+Bei parallelen Änderungen in einem zweiten Browser werden vorhandene Eingaben
+behalten; **Gespeicherten Stand neu laden** übernimmt den aktuellen Stand.
+
+- **Nur Monitoring:** Messwertbeobachtung und Lernen laufen weiter; keine automatischen
+  Starts. Ein noch laufender eigener Automatiklauf wird beendet. Manuelle oder von
+  anderen Automationen gestartete Pumpenläufe werden nicht übernommen oder beendet.
+- **Steuerung aktiv:** Ein erkannter Zapfvorgang kann die Pumpe innerhalb der
+  Freigabezeiten für die konfigurierte Laufzeit starten. Die Freigabezeiten sind
+  keine Dauerlaufzeiten und erzeugen selbst keine festen täglichen Starttermine.
+- **Montag bis Sonntag:** Je Tag bis zu zwölf Abschnitte hinzufügen oder entfernen,
+  beispielsweise Montag 06:00–08:00 und 18:00–21:00. Eine leere Liste sperrt den Tag.
+- **Feiertage:** Ersetzt an gesetzlichen Feiertagen der gewählten Region den normalen
+  Wochentag. Ohne konfigurierten Feiertagskalender gilt der Wochenplan. Eine leere
+  Feiertagsliste sperrt erkannte Feiertage.
+- **Urlaubsprofil:** Manuell aktivieren/deaktivieren. Solange aktiv, gelten ausschließlich
+  dessen tägliche Abschnitte, auch an Feiertagen. Ohne Abschnitte bleibt die Zirkulation
+  im Urlaub gesperrt. Die normale Wochenplanung bleibt gespeichert.
+
+Es gilt die Home-Assistant-Zeitzone. Ende bis **24:00** ist möglich. Über Mitternacht
+gehende Freigaben auf zwei Tage aufteilen (z. B. Freitag 23:00–24:00 und Samstag
+00:00–01:00). Überschneidungen und ungültige Uhrzeiten werden beim Speichern abgelehnt.
+Nicht vorhandene Uhrzeiten bei der Sommerzeitumstellung erteilen keine Freigabe.
+Die vollständige Pumpenlaufzeit muss in einen Abschnitt passen; um 07:59:30 ist
+bei Ende 08:00 und Laufzeit 60 Sekunden kein Start mehr erlaubt.
+
+Monitoring und leere Freigaben sind die Vorgabe bei neuen Installationen. Vorhandene
+Installationen erhalten ebenfalls leere Listen und müssen passende Fenster anlegen.
+Die Steuerung läuft unabhängig vom geöffneten Browser und prüft laufende Automatikläufe
+sekündlich. Laufzeitende, Wechsel ins Monitoring oder Entzug des Zeitfensters beenden
+eigene Läufe. Auch bei fehlenden Temperaturdaten bleibt das Laufzeitende wirksam.
+Pumpenbefehle müssen über den HA-Zustand bestätigt werden. Fehlgeschlagene Stopps
+bleiben gespeichert und werden erneut versucht; ein Pumpenfehler verhindert neue
+Starts, bis er nach Prüfung durch erneutes Speichern quittiert wurde.
+Ein Neustart stellt Einstellungen und offene Laufzeitgrenzen wieder her. Das
+Startlimit zählt nach lokalem Kalendertag und wird am nächsten Tag wieder freigegeben.
 
 ## 4. Sicherer Kalibrierungsablauf
 
@@ -109,7 +150,9 @@ Home-Assistant-Integration beziehungsweise deren Secret-Verwaltung erfolgen.
 4. Messlücken, Pumpenlauf und Abklingphasen kontrollieren.
 5. Im Dashboard Schwelle, Stichprobengröße, Beobachtungsabdeckung und erkannte Ereignisse
    prüfen.
-6. Erst nach ausreichender Datenbasis die Bedarfsautomatik aktivieren.
+6. Erst nach Prüfung der Datenbasis im Dashboard **Konfiguration → Betriebsart →
+   Steuerung aktiv** wählen und speichern. Der HA-Schalter **Bedarfsautomatik**
+   schaltet dieselbe Betriebsart um; ohne Zeitfenster bleiben Starts gesperrt.
 7. Zunächst mit engem Zeitfenster und niedrigem Tageslimit testen.
 8. Prüfen, dass manuelle Starts weiterhin möglich sind und automatische Starts bei
    fehlenden Messwerten oder unerreichbarer Pumpe pausieren.

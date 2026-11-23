@@ -1,8 +1,8 @@
 # Warmwasser-Zirkulation für Home Assistant
 
 Eine sicher startende Custom Integration für lernende Warmwasser-Zirkulation.
-Der Kern läuft zunächst im Monitoring und erzeugt erst nach ausreichender Kalibrierung
-und expliziter Aktivierung Schaltbefehle.
+Der Kern läuft zunächst im Monitoring und erzeugt erst nach expliziter Aktivierung
+innerhalb konfigurierter Freigabezeiten bedarfsabhängige Schaltbefehle.
 
 ## Architektur
 
@@ -12,7 +12,7 @@ und expliziter Aktivierung Schaltbefehle.
   ist optional; Recorder-Daten können als Importquelle verwendet werden.
 * `sensor.py` und `switch.py` sind dünne HA-Adapter. Keine produktiven Entity-IDs oder
   Zugangsdaten werden erfunden; alle Identitäten bleiben konfigurierbar.
-* `observations.py` sammelt Live-Beobachtungen ohne Pumpenbefehle und speichert die begrenzte Heatmap-Historie.
+* `observations.py` sammelt Live-Beobachtungen für die begrenzte Heatmap-Historie und ruft die serialisierte Steuerung browserunabhängig auf.
 * `frontend/` enthält das Vue-3-Seitenleistenpanel mit authentifiziertem Zugriff auf HA-Betriebsdaten.
 
 ## Einrichtung
@@ -39,7 +39,11 @@ Kurzablauf:
    der gesamte Integrationsordner einschließlich `web/panel.js` und `web/panel.css` muss kopiert werden.
 3. Mindestens mehrere Tage im Modus `Monitoring` beobachten. InfluxDB ist optional.
 4. Messintervall, Lücken, Pumpenartefakte und Stichprobengröße im Dashboard prüfen.
-5. Erst danach `Aktiv` und optional `Bedarfsautomatik` einschalten.
+5. Im Dashboard **Konfiguration** öffnen: Freigabezeiten für Montag bis Sonntag
+   und Feiertage als Listen mit mehreren Abschnitten anlegen (z. B. 06:00–08:00
+   und 18:00–21:00). Leere Tage sind gesperrt. Erst danach **Steuerung aktiv**
+   wählen und **Konfiguration speichern**. Für Urlaub gibt es ein separates,
+   manuell aktivierbares Tagesprofil; ohne Zeitfenster sperrt es alle Starts.
 
 Die produktive Installation/Aktivierung ist ausdrücklich nicht Teil dieses Projekts.
 Konfiguration, Pumpenverhalten und reale Zeitabstände müssen an der Anlage verifiziert werden.

@@ -1,4 +1,4 @@
-"""Collect monitoring data for the dashboard; this adapter issues no pump commands."""
+"""Collect measurements and schedule serialized control independently of the panel."""
 from datetime import datetime, timedelta, timezone
 import logging
 from math import isfinite
@@ -49,6 +49,7 @@ class ObservationMonitor:
         self.store = Store(hass, 1, f'{DOMAIN}.{entry.entry_id}.observations')
         self.history = UsageHistory()
         self.previous = None
+        self.control_samples = []
         self.pump_state = None
         self.valid_after = None
         self.last_event = None
@@ -58,6 +59,8 @@ class ObservationMonitor:
         self.problem = None
         self.closed = False
         self.started = False
+        self.control_pending = False
+        self.control_problem = None
 
     async def async_start(self):
         data = await self.store.async_load()
@@ -86,9 +89,11 @@ class ObservationMonitor:
         entities = [self.configuration.get('flow_sensor'), self.configuration.get('pump_entity')]
         self.unsubscribers.append(async_track_state_change_event(self.hass, [e for e in entities if e], self._changed))
         self.unsubscribers.append(async_track_time_interval(self.hass, self._tick, timedelta(seconds=30)))
+        self.unsubscribers.append(async_track_time_interval(self.hass, self._control_tick, timedelta(seconds=1)))
 
     async def _calendar(self):
-        year = dt_util.now().year
+        zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
+        year = dt_util.utcnow().astimezone(zone).year
         if self.calendar_year != year:
             self.holidays = await self.hass.async_add_executor_job(holiday_dates,
                 self.configuration.get('country'), self.configuration.get('subdivision'), year)
@@ -102,6 +107,26 @@ class ObservationMonitor:
         if not self.closed:
             await self._calendar()
             self.refresh()
+
+    async def _control_tick(self, now):
+        if self.closed or self.control_pending or not (self.coordinator.runtime.enabled or self.coordinator.runtime.pump_until):
+            return
+        zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc
+        local_now = now.astimezone(zone)
+        self.control_pending = True
+        try:
+            await self.coordinator.process(self.control_samples if not self.problem else [], local_now,
+                self.holidays, calendar_ready=self.calendar_year == local_now.year)
+            if self.control_problem:
+                _LOGGER.info('Circulation control recovered', extra={'reason': 'control_restored'})
+                self.control_problem = None
+        except Exception as error:
+            # Storage failures must not produce repeated start commands.
+            if self.control_problem != 'control_failed':
+                _LOGGER.error('Circulation control failed', extra={'reason': 'control_failed', 'error_type': type(error).__name__})
+            self.control_problem = 'control_failed'
+        finally:
+            self.control_pending = False
 
     @callback
     def refresh(self):
@@ -124,10 +149,12 @@ class ObservationMonitor:
                 _LOGGER.info('Heatmap observation resumed', extra={'reason': 'measurements_restored'})
             self.problem = problem
         if problem:
+            self.control_samples = []
             self.previous = None
             self.valid_after = now
             return
         if self.pump_state is not None and pump.state != self.pump_state:
+            self.control_samples = []
             self.previous = None
             self.valid_after = now
         self.pump_state = pump.state
@@ -141,6 +168,7 @@ class ObservationMonitor:
                 self.previous = current
             return
         self.previous = current
+        self.control_samples = [previous, current] if previous is not None else [current]
         if previous is None:
             return
         zone = dt_util.get_time_zone(self.hass.config.time_zone) or timezone.utc

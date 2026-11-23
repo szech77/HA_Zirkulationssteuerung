@@ -1,6 +1,6 @@
 import { createApp, reactive, type App } from 'vue'
 import PanelApp from './PanelApp.vue'
-import type { DashboardState, EntryStatus, HomeAssistant } from './types'
+import type { ControlSettings, DashboardState, EntryStatus, HomeAssistant } from './types'
 import './panel.css'
 
 export class WarmwasserPanel extends HTMLElement {
@@ -8,6 +8,8 @@ export class WarmwasserPanel extends HTMLElement {
   private app: App | null = null
   private state: DashboardState | null = null
   private timer: number | null = null
+  private configuring = false
+  private statusSequence = 0
   private pending = false
   private generation = 0
 
@@ -27,7 +29,7 @@ export class WarmwasserPanel extends HTMLElement {
     const target = document.createElement('div')
     root.append(stylesheet, target)
     this.state = reactive({ entries: [], loading: true, error: null, updatedAt: null })
-    this.app = createApp(PanelApp, { state: this.state, onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
+    this.app = createApp(PanelApp, { state: this.state, saveSettings: (id: string, settings: ControlSettings, revision: number) => this.configure(id, settings, revision), onRefresh: () => void this.refresh(), onMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) })
     this.app.mount(target)
     this.timer = window.setInterval(() => { if (document.visibilityState !== 'hidden') void this.refresh() }, 15_000)
     void this.refresh()
@@ -43,20 +45,38 @@ export class WarmwasserPanel extends HTMLElement {
     this.pending = false
   }
 
-  async refresh() {
-    if (!this.currentHass || !this.state || this.pending || !this.isConnected) return
+  async configure(entryId: string, settings: ControlSettings, revision: number) {
+    const hass = this.currentHass
+    if (!hass || !this.isConnected) throw new Error('unavailable')
+    if (this.configuring) throw new Error('busy')
+    this.configuring = true
+    this.statusSequence++
     const generation = this.generation
+    try {
+      await hass.callWS({ type: 'warmwasser_zirkulation/configure', entry_id: entryId, settings, revision })
+      const response = await hass.callWS<{ entries: EntryStatus[] }>({ type: 'warmwasser_zirkulation/status' })
+      if (generation !== this.generation || !this.state || !Array.isArray(response.entries)) throw new Error('unavailable')
+      this.state.entries = response.entries
+      this.state.updatedAt = new Date().toISOString()
+      this.state.error = null
+    } finally { this.configuring = false }
+  }
+
+  async refresh() {
+    if (!this.currentHass || !this.state || this.pending || this.configuring || !this.isConnected) return
+    const generation = this.generation
+    const sequence = ++this.statusSequence
     this.pending = true
     this.state.loading = true
     try {
       const response = await this.currentHass.callWS<{ entries: EntryStatus[] }>({ type: 'warmwasser_zirkulation/status' })
-      if (generation !== this.generation || !this.state) return
+      if (generation !== this.generation || sequence !== this.statusSequence || !this.state) return
       if (!response || !Array.isArray(response.entries)) throw new Error('invalid_response')
       this.state.entries = response.entries
       this.state.error = null
       this.state.updatedAt = new Date().toISOString()
     } catch {
-      if (generation === this.generation && this.state) this.state.error = 'Betriebsdaten konnten nicht geladen werden. Verbindung und Administratorrechte prüfen.'
+      if (generation === this.generation && sequence === this.statusSequence && this.state) this.state.error = 'Betriebsdaten konnten nicht geladen werden. Verbindung und Administratorrechte prüfen.'
     } finally {
       if (generation === this.generation && this.state) { this.state.loading = false; this.pending = false }
     }
