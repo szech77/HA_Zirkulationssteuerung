@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Warmwasser-Zirkulation: Wassertropfen mit Zirkulationspfeilen</title>
+  <g fill="none" stroke="#4ed1c6" stroke-width="18" stroke-linecap="round">
+    <path d="M26 96 C43 36 100 10 152 28 C182 37 204 59 215 82"/>
+    <path d="M230 160 C213 220 156 246 104 228 C74 219 52 197 41 174"/>
+  </g>
+  <g fill="#4ed1c6"><path d="M195 76 L231 107 L235 62 Z"/><path d="M61 180 L25 149 L21 194 Z"/></g>
+  <path fill="#ffad67" d="M128 60 C120 80 85 119 85 144 C85 168 104 187 128 187 C152 187 171 168 171 144 C171 119 136 80 128 60 Z"/>
+  <path fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" d="M103 143 C103 155 111 166 123 168"/>
+</svg>

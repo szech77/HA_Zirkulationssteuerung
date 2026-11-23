@@ -38,7 +38,9 @@ Anleitung enthält absichtlich keine produktiven Zugangsdaten oder erfundenen ID
    `custom_components/warmwasser_zirkulation/` in das Verzeichnis
    `<config>/custom_components/warmwasser_zirkulation/` kopieren.
 2. Prüfen, dass unter anderem `manifest.json`, `config_flow.py`, `coordinator.py`,
-   `sensor.py`, `switch.py`, `web/panel.js` und `web/panel.css` vorhanden sind.
+   `sensor.py`, `switch.py`, `brand/icon.png`, `brand/icon@2x.png`,
+   `brand/dark_icon.png`, `brand/dark_icon@2x.png`, `web/panel.js` und
+   `web/panel.css` vorhanden sind.
 3. Home Assistant neu starten.
 4. Die Integration über die Geräte-&-Dienste-Seite hinzufügen.
 
@@ -53,6 +55,15 @@ eine Zeitzone. Ungültige gespeicherte Zustände brechen die Einrichtung ab, ans
 ungeprüfte Werte für automatische Starts zu verwenden. Als Pumpen-Entity wird ein
 `switch` erwartet; ein Einschaltbefehl setzt einen aktuell bestätigten Zustand `off`
 voraus. Servicefehler werden an den Coordinator weitergegeben.
+
+### Logo in Geräte- und Integrationsansichten
+
+Ab **Home Assistant 2026.3** wird das mitgelieferte Logo aus dem Unterordner
+`brand/` automatisch in den nativen Geräte- und Integrationsansichten verwendet.
+Alle vier PNG-Dateien mitkopieren, HA vollständig neu starten und den Browser mit
+**Strg+F5** neu laden. Es ist keine Logo-URL oder zusätzliche Integration nötig.
+Das quadratische Symbol dient über HAs eingebaute Rückfalllogik auch als Logo.
+Für ältere HA-Versionen steht diese lokale Brand-Anzeige nicht zur Verfügung.
 
 ## 3. Konfiguration
 
