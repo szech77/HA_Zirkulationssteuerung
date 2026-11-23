@@ -2,6 +2,7 @@
 import { computed, ref, nextTick } from 'vue'
 import type { HeatCell, Heatmap } from '../types'
 const props = defineProps<{ data: Heatmap }>()
+const showAllowed = ref(true), showPlanned = ref(true)
 const focused = ref({ row: 0, slot: 0 })
 const selected = ref<{row:string;slot:number}|null>(null)
 const selectedText=computed(()=>{
@@ -38,14 +39,15 @@ function navigate(event: KeyboardEvent, row: number, slot: number) {
 </script>
 
 <template>
-  <section class="heatmap" aria-label="Zapfmuster nach Wochentag">
-    <div class="heatmap-header"><h3>Wann wird Warmwasser gebraucht?</h3><span>Letzte {{ data.retention_days }} Tage</span></div>
-    <p>Die Farbe zeigt den Anteil beobachteter Tage mit erkanntem Zapfvorgang je halber Stunde.</p>
+  <section class="heatmap heatmap-card surface" aria-label="Zapfmuster nach Wochentag">
+    <div class="heatmap-header"><h3>Dein Warmwasser-Rhythmus</h3><span>Letzte {{ data.retention_days }} Tage</span></div>
+    <p class="subtle">Die Farbe zeigt den Anteil beobachteter Tage mit erkanntem Zapfvorgang je halber Stunde.</p>
     <p v-if="data.planning" class="planning-note">{{ data.planning.mode === 'monitoring' ? 'Planungsvorschau im Monitoring · automatische Schaltbefehle sind ausgeschaltet.' : 'Planung der nächsten ' + data.planning.horizon_days + ' Tage · Ausführung bei gültigen Live-Werten und freigegebener Steuerung.' }}<template v-if="data.planning.vacation_active"> Das Urlaubsprofil bestimmt die dargestellten Freigaben.</template></p>
     <p v-if="!data.observed_dates" class="empty-heatmap">Noch keine ausreichenden Beobachtungen vorhanden. Vorhandene HA-Historie wird zum Lernstart eingelesen. Vorhandene Lücken werden nicht als „kein Verbrauch“ gewertet.</p>
+    <div class="heatmap-controls"><span class="view-label">ENTNAHMEN PRO HALBER STUNDE</span><div class="overlay-toggles"><label><input v-model="showAllowed" type="checkbox">Freigaben</label><label><input v-model="showPlanned" type="checkbox">Vorwärmen</label></div></div>
     <div class="heatmap-scroll">
       <table><caption class="visually-hidden">Zapfvorgänge nach Wochentag und halber Stunde</caption>
-        <thead><tr><th scope="col">Tag</th><th v-for="slot in 48" :key="slot" scope="col"><span v-if="(slot - 1) % 4 === 0">{{ time(slot - 1) }}</span><span v-else class="visually-hidden">{{ time(slot - 1) }}</span></th></tr></thead>
+        <thead><tr><th scope="col">Tag</th><th v-for="slot in 48" :key="slot" scope="col"><span v-if="(slot - 1) % 6 === 0">{{ time(slot - 1) }}</span><span v-else class="visually-hidden">{{ time(slot - 1) }}</span></th></tr></thead>
         <tbody><tr v-for="(row, rowIndex) in data.rows" :key="row.key"><th scope="row">{{ labels[row.key] }}</th>
           <td v-for="(cell, slot) in row.cells" :key="slot"><button type="button" class="heat-cell" :data-row="rowIndex" :data-slot="slot"
             :tabindex="focused.row === rowIndex && focused.slot === slot ? 0 : -1"
@@ -53,15 +55,15 @@ function navigate(event: KeyboardEvent, row: number, slot: number) {
             :class="[cell.level === null ? 'no-data' : `level-${cell.level}`, { provisional: cell.ratio !== null && !cell.sufficient }]"
             :title="describe(row.key, slot, cell)" :aria-label="describe(row.key, slot, cell)"
             @click="selected = {row:row.key,slot}">
-            <span v-for="(window,index) in cell.allowed_windows ?? []" :key="`allowed-${index}`" class="allowed-window" aria-hidden="true" :style="{left:window.offset+'%',width:window.width+'%'}"></span>
-            <span v-for="(run,index) in cell.planned_runs ?? []" :key="`planned-${index}`" class="planned-run" aria-hidden="true" :style="{left:run.offset+'%',width:run.width+'%'}"></span>
+            <span v-for="(window,index) in showAllowed ? cell.allowed_windows ?? [] : []" :key="`allowed-${index}`" class="allowed-window" aria-hidden="true" :style="{left:window.offset+'%',width:window.width+'%'}"></span>
+            <span v-for="(run,index) in showPlanned ? cell.planned_runs ?? [] : []" :key="`planned-${index}`" class="planned-run" aria-hidden="true" :style="{left:run.offset+'%',width:run.width+'%'}"></span>
             </button></td>
         </tr></tbody>
       </table>
     </div>
     <div class="legend"><span><i class="no-data"></i>Keine Messbasis</span><span><i class="level-0"></i>0 %</span><span><i class="level-2"></i>50 %</span><span><i class="level-4"></i>100 %</span><span><i class="level-2 provisional"></i>Vorläufig</span><template v-if="data.planning"><span><i class="legend-allowed"></i>Freigabezeit</span><span><i class="legend-planned"></i>Geplantes Vorwärmen</span></template></div>
     <p class="cell-detail" aria-live="polite">{{ selectedText }}</p>
-    <p class="subtle">Ein Tag zählt pro Zelle ab {{ data.minimum_coverage_minutes }} Minuten gültiger Messungen bei ausgeschalteter Pumpe. Ab {{ data.minimum_observed_days }} Tagen gilt die Messbasis als ausreichend. Sonntage und konfigurierte Feiertage werden gemeinsam gezählt; jeder Kalendertag zählt einmal.</p>
+    <details class="heatmap-help"><summary>Wie wird die Heatmap berechnet?</summary><p class="subtle">Ein Tag zählt pro Zelle ab {{ data.minimum_coverage_minutes }} Minuten gültiger Messungen bei ausgeschalteter Pumpe. Ab {{ data.minimum_observed_days }} Tagen gilt die Messbasis als ausreichend. Sonntage und konfigurierte Feiertage werden gemeinsam gezählt; jeder Kalendertag zählt einmal.</p></details>
     <p v-if="!data.calendar_enabled" class="calendar-hint">Feiertage sind noch nicht konfiguriert. Land und Bundesland/Region unter „Konfigurieren → Feiertagskalender“ auswählen.</p>
   </section>
 </template>

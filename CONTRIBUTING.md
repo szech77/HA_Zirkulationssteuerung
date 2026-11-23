@@ -85,7 +85,10 @@ Speicherschnittstellen. `api/websocket.py` verwendet weiterhin HAs authentifizie
 Verbindung und Administratorprüfung; die bestehenden WebSocket-Namen bleiben gleich.
 Ein eigener HTTP-Server, JWT-Login, ORM oder Alembic sind dafür nicht erforderlich.
 Die vorhandenen versionierten Speichermigrationen liegen in `app/db/migrations.py`;
-Speicherschlüssel und Schema-Version bleiben unverändert.
+Die Speicherschlüssel bleiben unverändert. Schema-/HA-Store-Version 3 ergänzt
+dauerhaft gespeicherte Laufzeit und Tageslimits und migriert Versionen 1 und 2.
+Der API-/Speichervertrag verwendet Sekunden, die Oberfläche Minuten. Änderungen
+der Laufzeit ändern keine bereits bestätigte Laufzeitgrenze.
 
 Die Tests spiegeln diese Verantwortlichkeiten. Zusätzlich prüfen sie, dass das
 kopierte Integrationspaket ohne Zugriff auf das Repository importierbar bleibt
@@ -111,7 +114,8 @@ frontend/src/
 
 Vue Router **4.6.4** ist exakt gepinnt und verwendet `createMemoryHistory()`.
 Home Assistant behält die äußere Browser-URL; das Panel startet intern auf der
-Dashboard-Route. Jede gemountete Panel-Instanz erhält einen eigenen Router und
+Dashboard-Route; `/settings` ist die eigene Einstellungsseite. `App.vue` hält
+die feste Titelleiste und mit `KeepAlive` die Entwürfe beim Routenwechsel. Jede gemountete Panel-Instanz erhält einen eigenen Router und
 Store. Der Store verwendet Vues `reactive`; `useHomeAssistantPanel` kapselt die
 von HA bereitgestellte authentifizierte Verbindung. Beim Entladen werden Polling
 und ausstehende UI-Aktualisierungen beendet beziehungsweise verworfen.

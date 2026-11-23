@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from math import isfinite
 
 from ..core.config import entry_configuration
-from ..core.const import DOMAIN
+from ..core.const import DOMAIN, MAX_RUNTIME_SECONDS, MAX_DAILY_STARTS
 
 
 def sensor_status(hass, entity_id, now):
@@ -61,6 +61,8 @@ def entry_status(hass, entry, coordinator, observer=None, now=None, *, include_h
             'daily_starts': coordinator.runtime.daily_starts, 'max_starts': coordinator.max_starts,
             'remaining_starts': max(0, coordinator.max_starts - coordinator.runtime.daily_starts),
             'runtime_seconds': coordinator.runtime_seconds,
+            'runtime_max_seconds': MAX_RUNTIME_SECONDS, 'max_daily_starts': MAX_DAILY_STARTS,
+            'pump_until': coordinator.runtime.pump_until.isoformat() if coordinator.runtime.pump_until else None,
             'next_start': next_start,
             'history_import': dict(observer.import_info) if observer is not None else None,
             'country': configuration.get('country'), 'subdivision': configuration.get('subdivision'),

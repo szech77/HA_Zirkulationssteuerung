@@ -13,7 +13,7 @@ def _payload(data):
     if not isinstance(data,dict):
         raise ValueError('Invalid stored payload')
     version=data.get('schema_version',1)
-    if type(version) is not int or version not in (1,SCHEMA_VERSION):
+    if type(version) is not int or version not in (1,2,SCHEMA_VERSION):
         raise ValueError('Unsupported stored schema version')
     return deepcopy(data),version
 
@@ -29,7 +29,7 @@ def migrate_runtime_payload(data):
                 raise ValueError('Invalid settings revision')
             result['settings_revision']=revision+1
         result.pop('schedule_migrated',None)
-        result['schema_version']=SCHEMA_VERSION
+    result['schema_version']=SCHEMA_VERSION
     return result
 
 
@@ -62,7 +62,7 @@ def migrate_observation_payload(data,time_zone):
         result['days']=history.days
         if isinstance(result.get('history_entities'),list) and len(result['history_entities'])==2:
             result['history_entities'].append(time_zone)
-        result['schema_version']=SCHEMA_VERSION
+    result['schema_version']=SCHEMA_VERSION
     return result
 
 

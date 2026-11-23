@@ -6,17 +6,18 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import WarmwasserDashboard from '../components/WarmwasserDashboard.vue'
+import { createPanelRouter } from '../router'
 import { entry } from './fixtures'
 
 const require = createRequire(import.meta.url)
 
 describe('updated formatter dependency compatibility', () => {
   it('serializes actual Vue component HTML through the js-beautify integration', () => {
-    const wrapper = mount(WarmwasserDashboard, { props: { entry: entry() } })
+    const wrapper = mount(WarmwasserDashboard, { props: { entry: entry() }, global: { plugins: [createPanelRouter()] } })
     const html = wrapper.html()
     expect(html).toContain('<article')
     expect(html).toContain('Test-Zirkulation')
-    expect(html).toContain('45,2 °C')
+    expect(wrapper.text()).toContain('45,2°C')
     wrapper.unmount()
   })
 

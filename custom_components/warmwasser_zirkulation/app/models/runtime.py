@@ -24,3 +24,5 @@ class RuntimeState:
     vacation_active: bool = False
     vacation_windows: list = field(default_factory=list)
     settings_revision: int = 0
+    runtime_seconds: int | None = None
+    max_starts: int | None = None

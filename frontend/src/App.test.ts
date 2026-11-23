@@ -3,17 +3,13 @@ import { describe, expect, it } from 'vitest'
 import App from './App.vue'
 import { createPanelRouter } from './router'
 import { entry } from './test/fixtures'
-
-describe('application root', () => {
-  it('renders the routed dashboard and forwards HA menu and refresh events', async () => {
-    const router=createPanelRouter();await router.push('/')
-    const wrapper=mount(App,{props:{state:{entries:[entry()],loading:false,error:null,updatedAt:null}},global:{plugins:[router]}})
-    await flushPromises()
-    expect(wrapper.text()).toContain('Test-Zirkulation')
-    await wrapper.get('.menu-button').trigger('click')
-    await wrapper.findAll('button').find(button=>button.text()==='Aktualisieren')!.trigger('click')
-    expect(wrapper.emitted('menu')).toHaveLength(1)
-    expect(wrapper.emitted('refresh')).toHaveLength(1)
-    wrapper.unmount()
-  })
+import lightLogo from './assets/images/icon.svg'
+import darkLogo from './assets/images/dark_icon.svg'
+const state=()=>({entries:[entry()],loading:false,error:null as string|null,updatedAt:null,darkMode:false})
+async function start(){const router=createPanelRouter();await router.push('/');const wrapper=mount(App,{props:{state:state()},global:{plugins:[router]}});await flushPromises();return{router,wrapper}}
+describe('application navigation and persistent header',()=>{
+ it('renders the dashboard and forwards menu/refresh from the shared header',async()=>{const{wrapper}=await start();expect(wrapper.text()).toContain('Test-Zirkulation');await wrapper.get('.menu-button').trigger('click');await wrapper.get('[aria-label=Aktualisieren]').trigger('click');expect(wrapper.emitted('menu')).toHaveLength(1);expect(wrapper.emitted('refresh')).toHaveLength(1);wrapper.unmount()})
+ it('keeps settings on a separate route and preserves unsaved edits across navigation',async()=>{const{router,wrapper}=await start();expect(wrapper.find('.control-settings').exists()).toBe(false);await router.push('/settings');await flushPromises();await wrapper.get('[aria-label="Montag Zeitraum hinzufügen"]').trigger('click');await wrapper.get('[aria-label="Montag Abschnitt 1 von"]').setValue('05:45');await router.push('/');await flushPromises();expect(wrapper.get('h1').text()).toBe('Übersicht');await router.push('/settings');await flushPromises();expect(wrapper.get('[aria-label="Montag Abschnitt 1 von"]').element.value).toBe('05:45');expect(wrapper.text()).toContain('Ungespeicherte Änderungen');expect(wrapper.get('h1').text()).toBe('Einstellungen');wrapper.unmount()})
+ it('follows HA themes and allows a local neutral dark/light override',async()=>{const{wrapper}=await start();expect(wrapper.get('.brand-logo').attributes('src')).toBe(lightLogo);await wrapper.setProps({state:{...state(),darkMode:true}});expect(wrapper.get('.app-shell').attributes('data-theme')).toBe('dark');expect(wrapper.get('.brand-logo').attributes('src')).toBe(darkLogo);await wrapper.get('[aria-label="Helle Ansicht aktivieren"]').trigger('click');expect(wrapper.get('.app-shell').attributes('data-theme')).toBe('light');wrapper.unmount()})
+ it('keeps the header and unsaved settings when connectivity fails, and blocks writes',async()=>{const{router,wrapper}=await start();await router.push('/settings');await flushPromises();await wrapper.get('[aria-label="Montag Zeitraum hinzufügen"]').trigger('click');await wrapper.setProps({state:{...state(),error:'Verbindung prüfen'}});expect(wrapper.get('.app-header').exists()).toBe(true);expect(wrapper.get('[role=alert]').text()).toContain('Eingaben bleiben erhalten');expect(wrapper.get('[aria-label="Montag Abschnitt 1 von"]').element.value).toBe('06:00');expect(wrapper.get('[type=submit]').attributes('disabled')).toBeDefined();wrapper.unmount()})
 })

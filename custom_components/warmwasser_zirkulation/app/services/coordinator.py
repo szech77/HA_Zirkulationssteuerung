@@ -28,13 +28,33 @@ _LOGGER = logging.getLogger(__name__)
 class CirculationCoordinator:
     def __init__(self, pump: PumpGateway, store: StateStore, pump_entity: str, runtime_seconds: int = 120, max_starts: int = 6):
         self.pump, self.store, self.pump_entity = pump, store, pump_entity
-        self.runtime_seconds, self.max_starts = runtime_seconds, max_starts
+        self._configured_runtime_seconds, self._configured_max_starts = runtime_seconds, max_starts
         self.runtime = RuntimeState()
         self.model = LearningModel()
         self.detector = DetectionEngine(DetectorConfig(), self.model)
         self.lock = asyncio.Lock()
         self._last_reported_reason = None
         self._stopping = False
+
+    @property
+    def runtime_seconds(self):
+        return self.runtime.runtime_seconds if self.runtime.runtime_seconds is not None else self._configured_runtime_seconds
+
+    @property
+    def max_starts(self):
+        return self.runtime.max_starts if self.runtime.max_starts is not None else self._configured_max_starts
+
+    async def async_update_limits(self, runtime_seconds, max_starts):
+        # The native options flow and panel share one revisioned persistence path.
+        while True:
+            revision = self.runtime.settings_revision
+            values = {**self.settings(), "runtime_seconds": runtime_seconds, "max_starts": max_starts}
+            try:
+                await self.async_configure(values, revision)
+                return
+            except ValueError as error:
+                if str(error) != "settings_conflict":
+                    raise
 
     @classmethod
     def from_home_assistant(cls, hass, entry):
@@ -60,6 +80,8 @@ class CirculationCoordinator:
             candidate = replace(self.runtime, enabled=active, demand_automation=active, control_fault=False,
                                 schedule=values["schedule"], vacation_active=values["vacation_active"],
                                 vacation_windows=values["vacation_windows"], settings_revision=revision + 1,
+                                runtime_seconds=values.get("runtime_seconds", self.runtime_seconds),
+                                max_starts=values.get("max_starts", self.max_starts),
                                 last_reason="waiting_for_demand" if active else "monitoring")
             # Publish settings only after successful durable persistence.
             await self.store.save(candidate.__dict__)

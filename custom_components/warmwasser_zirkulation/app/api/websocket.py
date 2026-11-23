@@ -34,7 +34,7 @@ async def websocket_configure(hass, connection, msg):
         conflict = str(error) == 'settings_conflict'
         connection.send_error(msg['id'], 'settings_conflict' if conflict else 'invalid_settings',
             'Die Konfiguration wurde inzwischen geändert. Neu laden und erneut bearbeiten.' if conflict else
-            'Zeitfenster prüfen: gültige Uhrzeiten, von vor bis, keine Überschneidungen, höchstens 12 Abschnitte pro Tag.')
+            'Zeitfenster prüfen: gültige Uhrzeiten, von vor bis, keine Überschneidungen, höchstens 12 Abschnitte pro Tag. Laufzeit: 1 Sekunde bis 1.440 Minuten; Tageslimit: 1 bis 100 Starts.')
         return
     except Exception as error:
         logging.getLogger(__name__).error('Control settings could not be saved',

@@ -23,6 +23,7 @@ export class WarmwasserPanel extends HTMLElement {
     const target = document.createElement('div')
     root.append(stylesheet, target)
     const router = createPanelRouter()
+    router.afterEach(() => { this.scrollTop = 0 })
     this.app = createApp(App, {
       state: this.#controller.state, saveSettings: this.#controller.configure, importHistory: this.#controller.importHistory,
       onRefresh: () => void this.#controller.refresh(),

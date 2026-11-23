@@ -81,7 +81,7 @@ Fehlermeldungen auf Deutsch; Englisch ist als Rückfall vorhanden.
 - **Vorlauftemperaturfühler:** vorhandenen Temperatursensor an der Leitung auswählen.
 - **Puffertemperaturfühler:** optional einen weiteren Temperatursensor auswählen.
 - **Schalter der Zirkulationspumpe:** vorhandene `switch`-Entität auswählen.
-- **Pumpenlaufzeit:** ganze Sekunden von 1 bis 3600; Standard 120.
+- **Pumpenlaufzeit:** in der Oberfläche frei in Minuten, von 1 Sekunde bis 1.440 Minuten (24 Stunden). Dezimalwerte wie 1,5 Minuten sind möglich; der Standard bleibt 2 Minuten. Die native HA-Gerätekonfiguration verwendet weiterhin ganze Sekunden von 1 bis 86400.
 - **Maximale automatische Starts pro Tag:** ganze Zahl von 1 bis 100; Standard 6.
 
 Die Sensorauswahl zeigt nur `sensor`-Entitäten mit der Geräteklasse `temperature`.
@@ -92,7 +92,7 @@ aber weiterhin in HA vorhandene Entitäten können ausgewählt bleiben.
 
 Spätere Änderungen sind unter **Einstellungen → Geräte & Dienste →
 Warmwasser-Zirkulation → Konfigurieren** möglich. Die vorhandene Auswahl ist
-vorbelegt. Der Link **Geräte & Sensoren** im Dashboard öffnet die Integrationsseite;
+vorbelegt. Der Link **Geräte in Home Assistant auswählen** unter **Einstellungen → Sensoren & Region** öffnet die Integrationsseite;
 das Zahnrad am gewünschten Eintrag öffnet den nativen Einstellungsdialog.
 Zum Entfernen des optionalen Puffersensors dessen Auswahl leeren.
 Nach dem Speichern lädt HA die Integration mit den neuen Optionen neu.
@@ -121,16 +121,16 @@ InfluxDB-Anbindung ist derzeit nicht implementiert.
 
 ### Freigabezeiten und Betriebsart im Dashboard
 
-Als HA-Administrator in der Seitenleiste **Warmwasser-Zirkulation → Konfiguration**
+Als HA-Administrator in der Seitenleiste **Warmwasser-Zirkulation → Einstellungen**
 öffnen. Die Einstellungen gelten getrennt pro Integrationseintrag und werden mit
-**Konfiguration speichern** dauerhaft übernommen, ohne die Integration neu zu laden.
+**Änderungen speichern** dauerhaft übernommen, ohne die Integration neu zu laden.
 Bei parallelen Änderungen in einem zweiten Browser werden vorhandene Eingaben
 behalten; **Gespeicherten Stand neu laden** übernimmt den aktuellen Stand.
 
 - **Nur Monitoring:** Messwertbeobachtung und Lernen laufen weiter; keine automatischen
   Starts. Ein noch laufender eigener Automatiklauf wird beendet. Manuelle oder von
   anderen Automationen gestartete Pumpenläufe werden nicht übernommen oder beendet.
-- **Steuerung aktiv:** Ein erkannter Zapfvorgang kann die Pumpe innerhalb der
+- **Automatische Steuerung:** Ein erkannter Zapfvorgang kann die Pumpe innerhalb der
   Freigabezeiten für die konfigurierte Laufzeit starten. Zusätzlich sind gelernte
   vorausschauende Starts bei ausreichender Messbasis möglich. Die Freigabezeiten
   selbst sind keine Dauerlaufzeiten oder festen täglichen Starttermine.
@@ -170,7 +170,7 @@ Startlimit zählt nach lokalem Kalendertag und wird am nächsten Tag wieder frei
 4. Messlücken, Pumpenlauf und Abklingphasen kontrollieren.
 5. Im Dashboard Schwelle, Stichprobengröße, Beobachtungsabdeckung und erkannte Ereignisse
    prüfen.
-6. Erst nach Prüfung der Datenbasis im Dashboard **Konfiguration → Betriebsart →
+6. Erst nach Prüfung der Datenbasis im Dashboard **Einstellungen → Betrieb & Urlaub →
    Steuerung aktiv** wählen und speichern. Der HA-Schalter **Bedarfsautomatik**
    schaltet dieselbe Betriebsart um; ohne Zeitfenster bleiben Starts gesperrt.
 7. Zunächst mit engem Zeitfenster und niedrigem Tageslimit testen.
@@ -296,7 +296,7 @@ und historische Auswertung laufen in HAs Recorder-Executor, in Tagesblöcken und
 unabhängig vom Browser. Die Live-Beobachtung läuft parallel weiter. Es werden keine
 historischen Pumpenbefehle nachgeholt und keine Produktionssysteme umkonfiguriert.
 
-Im Dashboard zeigt **Historie und Lernplanung** Fortschritt, zusätzliche Lernereignisse,
+Im Dashboard unter **Lernbasis ansehen** zeigt **Historie und Lernplanung** Fortschritt, zusätzliche Lernereignisse,
 Fehler und den nächsten Muster-Vorschlag. **HA-Historie erneut einlesen** startet einen
 erneuten Import über die authentifizierte Administratorverbindung. Wiederholungen
 zählen Tageszellen und Lernereignisse nicht doppelt. Ein gespeicherter Tages-Checkpoint
@@ -334,8 +334,8 @@ Sonntage und gesetzliche Feiertage bilden in Heatmap, Lernplanung und Zeitfreiga
 gruppiert. Beim Update werden getrennte Sonntags-/Feiertagsfreigaben durch ihre
 **Schnittmenge** ersetzt. Unterschiedliche oder leere alte Listen können die neue
 Gruppe sperren. Die Migration läuft selbstständig beim Laden; neue Stunden werden dadurch nicht
-freigegeben. Beide Speicherdateien verwenden Schema-Version 2, zusätzlich zur
-HA-Store-Version 2. Ältere Version-1-Daten ohne interne Versionsangabe werden
+freigegeben. Beide Speicherdateien verwenden Schema-Version 3, zusätzlich zur
+HA-Store-Version 3. Ältere Version-1-Daten ohne interne Versionsangabe und Version-2-Daten werden
 validiert und automatisch übertragen. Unbekannte neuere Versionen und beschädigte
 Daten werden abgelehnt und nicht überschrieben. Wiederholtes Laden migriert nicht erneut.
 
@@ -353,3 +353,32 @@ und gibt keine Schaltbefehle aus. Die Vorhersage berücksichtigt Freigaben, Urla
 Tageslimit, bereits verbrauchte Starts und den Startabstand. Die tatsächliche Ausführung
 benötigt zusätzlich aktive Steuerung und gültige Live-Messwerte. Bei fehlender Messbasis
 werden nur Freigabezeiten markiert. Sonntage und Feiertage bleiben eine gemeinsame Zeile.
+
+
+### Neue Oberfläche und frei wählbare Pumpenlaufzeit
+
+Die Titelleiste mit **Übersicht** und **Einstellungen** bleibt beim Scrollen oben.
+Die Darstellung folgt zunächst dem HA-Theme; das Sonnensymbol/Mondsymbol schaltet
+nur die Ansicht dieses Panels um. Im Darkmode sind Flächen neutral anthrazit/grau.
+
+Unter **Einstellungen → Betrieb & Urlaub → Grenzen für die Automatik** die
+Laufzeit frei in Minuten eingeben. Beispiele: `1,5` für 90 Sekunden, `90` für
+anderthalb Stunden. Ein Lauf ist maximal 1.440 Minuten lang und muss vollständig
+in ein Freigabefenster passen. Gespeichert wird sekundengenau. Eine Änderung
+verkürzt oder verlängert keinen bereits gestarteten Lauf; neue Starts verwenden
+den neuen Wert. Tageslimit, Bestätigung der Pumpe, frische Messwerte und Stoppen
+bei entzogener Freigabe gelten unverändert.
+
+Laufzeit und Tageslimit werden mit den Steuerungseinstellungen dauerhaft
+versioniert gespeichert. Die native HA-Konfiguration zeigt ebenfalls diese Werte;
+Änderungen dort und im Panel verwenden dieselbe Speicherung. Alte Version-1/2-Daten
+behalten beim Update die bisher konfigurierte Laufzeit als Ausgangswert.
+
+**Freigabezeiten** enthält den Wochenplan. Unter **Sensoren & Region** stehen die
+konfigurierten Quellen und der Link zu HAs nativer, durchsuchbarer Auswahl. Dort
+über das Zahnrad des gewünschten Eintrags Sensoren, Pumpe und Feiertagsregion ändern.
+
+Ungespeicherte Eingaben bleiben beim Wechsel zwischen Übersicht und Einstellungen
+und bei Verbindungsproblemen erhalten. Ändert sich die gespeicherte Revision,
+werden parallele Änderungen angezeigt und ein erneutes Speichern bis zum expliziten
+Neuladen verhindert. Die Übersicht blendet bei Verbindungsfehlern alte Messwerte aus.

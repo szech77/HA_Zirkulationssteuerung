@@ -12,7 +12,7 @@ def test_version_one_observations_upgrade_without_losing_counts_learning_or_sour
     before=deepcopy(original)
     migrated=migrate_observation_payload(original,'Europe/Berlin')
     assert original==before
-    assert migrated['schema_version']==2
+    assert migrated['schema_version']==3
     assert migrated['days']['2026-11-22']['coverage']==[900]*48
     assert migrated['days']['2026-11-22']['events']==[True]*48
     assert migrated['days']['2026-11-22']['minutes']==[None]*48
@@ -21,7 +21,7 @@ def test_version_one_observations_upgrade_without_losing_counts_learning_or_sour
     assert migrate_observation_payload(migrated,'Europe/Berlin')==migrated
 
 
-@pytest.mark.parametrize('version',[0,3,True,'2'])
+@pytest.mark.parametrize('version',[0,4,True,'3'])
 def test_unknown_payload_versions_are_rejected_instead_of_overwritten(version):
     original={'schema_version':version}
     for migrate in (migrate_runtime_payload,lambda value:migrate_observation_payload(value,'UTC')):
@@ -35,9 +35,20 @@ def test_automatic_runtime_migration_is_versioned_and_idempotent():
     schedule['holiday']=[{'start':'08:00','end':'12:00'}]
     original={'enabled':True,'demand_automation':True,'schedule':schedule,'settings_revision':4,'daily_starts':2}
     migrated=migrate_runtime_payload(original)
-    assert migrated['schema_version']==2
+    assert migrated['schema_version']==3
     assert migrated['schedule']['sun_holiday']==[{'start':'08:00','end':'10:00'}]
     assert migrated['settings_revision']==5 and migrated['daily_starts']==2
     assert migrated['enabled'] is True and migrated['demand_automation'] is True
     assert migrate_runtime_payload(migrated)==migrated
     assert 'schema_version' not in original
+
+
+@pytest.mark.parametrize('version',[1,2])
+def test_existing_payloads_migrate_to_three_without_inventing_runtime_overrides(version):
+    original={'schema_version':version,'enabled':False,'settings_revision':7,'daily_starts':2}
+    result=migrate_runtime_payload(original)
+    assert result['schema_version']==3 and result['settings_revision']==7
+    assert result['daily_starts']==2 and 'runtime_seconds' not in result
+    assert original['schema_version']==version
+    observations=migrate_observation_payload({'schema_version':version,'days':{}},'UTC')
+    assert observations['schema_version']==3 and observations['days']=={}

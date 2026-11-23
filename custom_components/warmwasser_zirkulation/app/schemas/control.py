@@ -1,6 +1,8 @@
 """Validated public control settings and fail-closed defaults."""
 from __future__ import annotations
 
+from ..core.const import MAX_RUNTIME_SECONDS, MAX_DAILY_STARTS
+
 
 # Missing windows always mean no automatic permission.
 SCHEDULE_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun_holiday")
@@ -13,7 +15,8 @@ def default_schedule():
 def validate_control_settings(values):
     """Normalize bounded lists; reject malformed, overlapping or overnight windows."""
     import re
-    if not isinstance(values, dict) or set(values) != {"mode", "schedule", "vacation_active", "vacation_windows"}:
+    required = {"mode", "schedule", "vacation_active", "vacation_windows"}
+    if not isinstance(values, dict) or not required <= set(values) or set(values) - required - {"runtime_seconds", "max_starts"}:
         raise ValueError("invalid_settings")
     if values["mode"] not in ("monitoring", "active") or type(values["vacation_active"]) is not bool:
         raise ValueError("invalid_settings")
@@ -41,5 +44,17 @@ def validate_control_settings(values):
             raise ValueError("overlapping_windows")
         return result
 
-    return {"mode": values["mode"], "schedule": {day: windows(schedule[day]) for day in SCHEDULE_DAYS},
+    return {**validate_limits(values), "mode": values["mode"], "schedule": {day: windows(schedule[day]) for day in SCHEDULE_DAYS},
             "vacation_active": values["vacation_active"], "vacation_windows": windows(values["vacation_windows"])}
+
+
+def validate_limits(values):
+    """Optional limits preserve older clients; stored values use integer seconds."""
+    limits = {}
+    for key, maximum in (("runtime_seconds", MAX_RUNTIME_SECONDS), ("max_starts", MAX_DAILY_STARTS)):
+        if key in values:
+            value = values[key]
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError("invalid_limits")
+            limits[key] = value
+    return limits

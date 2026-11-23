@@ -282,7 +282,7 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         await async_setup_entry(self.hass,self.entry)
         control=self.hass.data[DOMAIN][self.entry.entry_id]
         observer=self.hass.data[OBSERVERS][self.entry.entry_id]
-        assert control.runtime.schema_version==2 and control.runtime.settings_revision==5
+        assert control.runtime.schema_version==3 and control.runtime.settings_revision==5
         assert control.runtime.daily_starts==2
         assert control.runtime.schedule['sun_holiday']==[{'start':'08:00','end':'10:00'}]
         assert observer.history.days['2026-11-22']['events']==[True]*48
@@ -290,18 +290,51 @@ class TestNativePanel(IsolatedAsyncioTestCase):
         for key in (runtime_key,observation_key):
             path=Path(self.directory.name)/'.storage'/key
             raw=json.loads(await self.hass.async_add_executor_job(path.read_text))
-            assert raw['version']==2 and raw['data']['schema_version']==2
+            assert raw['version']==3 and raw['data']['schema_version']==3
         await async_unload_entry(self.hass,self.entry)
         await async_setup_entry(self.hass,self.entry)
         assert self.hass.data[DOMAIN][self.entry.entry_id].runtime.settings_revision==5
+        assert self.service_calls==[]
+
+    async def test_panel_runtime_limits_are_confirmed_and_survive_native_reload(self):
+        await async_setup_entry(self.hass,self.entry)
+        control=self.hass.data[DOMAIN][self.entry.entry_id]
+        done=asyncio.Event()
+        connection=SimpleNamespace(user=SimpleNamespace(is_admin=True),
+            send_result=Mock(side_effect=lambda *args:done.set()),send_error=Mock(side_effect=lambda *args:done.set()))
+        message={'id':41,'type':DOMAIN+'/configure','entry_id':self.entry.entry_id,'revision':0,
+            'settings':{**control.settings(),'runtime_seconds':5400,'max_starts':12}}
+        websocket_configure(self.hass,connection,message)
+        await asyncio.wait_for(done.wait(),20)
+        connection.send_error.assert_not_called()
+        connection.send_result.assert_called_with(41,{'revision':1})
+        assert control.runtime_seconds==5400 and control.max_starts==12
+        assert (await control.store.load())['runtime_seconds']==5400
+        await async_unload_entry(self.hass,self.entry)
+        await async_setup_entry(self.hass,self.entry)
+        restored=self.hass.data[DOMAIN][self.entry.entry_id]
+        assert restored.runtime_seconds==5400 and restored.max_starts==12
+        assert self.service_calls==[]
+
+    async def test_version_two_native_stores_upgrade_without_losing_current_configuration(self):
+        from homeassistant.helpers.storage import Store
+        runtime_key=f'{DOMAIN}.{self.entry.entry_id}'
+        await Store(self.hass,2,runtime_key).async_save({'schema_version':2,'settings_revision':7,'daily_starts':2})
+        await Store(self.hass,2,runtime_key+'.observations').async_save({'schema_version':2,'days':{}})
+        await async_setup_entry(self.hass,self.entry)
+        control=self.hass.data[DOMAIN][self.entry.entry_id]
+        assert control.runtime.schema_version==3 and control.runtime.settings_revision==7
+        assert control.runtime_seconds==120 and control.runtime.daily_starts==2
+        assert (await control.store.load())['schema_version']==3
+        assert (await self.hass.data[OBSERVERS][self.entry.entry_id].store.async_load())['schema_version']==3
         assert self.service_calls==[]
 
     async def test_unknown_newer_storage_is_not_overwritten(self):
         from homeassistant.helpers.storage import Store
         from homeassistant.exceptions import UnsupportedStorageVersionError
         key=f'{DOMAIN}.{self.entry.entry_id}'
-        future=Store(self.hass,3,key)
-        original={'schema_version':3,'enabled':False}
+        future=Store(self.hass,4,key)
+        original={'schema_version':4,'enabled':False}
         await future.async_save(original)
         with self.assertRaises(UnsupportedStorageVersionError):
             await async_setup_entry(self.hass,self.entry)

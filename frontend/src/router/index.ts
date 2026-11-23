@@ -1,8 +1,10 @@
 import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
+import SettingsView from '../views/SettingsView.vue'
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'dashboard', component: DashboardView },
+  { path: '/settings', name: 'settings', component: SettingsView },
   { path: '/:pathMatch(.*)*', redirect: { name: 'dashboard' } },
 ]
 

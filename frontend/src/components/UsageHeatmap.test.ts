@@ -4,6 +4,20 @@ import UsageHeatmap from './UsageHeatmap.vue'
 import { heatmap } from '../test/fixtures'
 
 describe('usage heatmap', () => {
+  it('can hide each planning overlay without changing measured colors', async () => {
+    const data=heatmap();data.planning={mode:'monitoring',vacation_active:false,horizon_days:7,next_start:null}
+    data.rows[0].cells[12].allowed_windows=[{start:'06:00',end:'06:30',offset:0,width:100}]
+    data.rows[0].cells[12].planned_runs=[{start:'06:05',end:'06:07',offset:16.67,width:6.67}]
+    const wrapper=mount(UsageHeatmap,{props:{data}})
+    expect(wrapper.find('.allowed-window').exists()).toBe(true)
+    await wrapper.findAll('input[type=checkbox]')[0].setValue(false)
+    expect(wrapper.find('.allowed-window').exists()).toBe(false)
+    expect(wrapper.find('.planned-run').exists()).toBe(true)
+    await wrapper.findAll('input[type=checkbox]')[1].setValue(false)
+    expect(wrapper.find('.planned-run').exists()).toBe(false)
+    expect(wrapper.findAll('.heat-cell')).toHaveLength(336)
+  })
+
   it('shows weekdays, Saturday and the combined Sunday/holiday row without inventing data', () => {
     const wrapper=mount(UsageHeatmap,{props:{data:heatmap()}})
     for (const day of ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonn-/Feiertage']) expect(wrapper.text()).toContain(day)

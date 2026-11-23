@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from ..core.const import DOMAIN, SCHEMA_VERSION
-from ..schemas.control import default_schedule, validate_control_settings
+from ..schemas.control import default_schedule, validate_control_settings, validate_limits
 from .migrations import migrate_runtime_payload
 
 STORAGE_VERSION = SCHEMA_VERSION
@@ -18,7 +18,7 @@ class HomeAssistantStateStore:
 
         class RuntimeStore(Store):
             async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
-                if (old_major_version,old_minor_version)!=(1,1):
+                if (old_major_version,old_minor_version) not in ((1,1),(2,1)):
                     raise ValueError('Unsupported runtime storage version')
                 migrated=migrate_runtime_payload(old_data)
                 HomeAssistantStateStore._validate(migrated)
@@ -30,6 +30,7 @@ class HomeAssistantStateStore:
     def _validate(state: dict) -> None:
         if 'schema_version' in state and (type(state['schema_version']) is not int or state['schema_version']!=SCHEMA_VERSION):
             raise ValueError('Unsupported runtime schema version')
+        validate_limits({key: state[key] for key in ("runtime_seconds", "max_starts") if state.get(key) is not None})
         for key in ("enabled", "demand_automation", "control_fault"):
             if key in state and type(state[key]) is not bool:
                 raise ValueError("Invalid persisted automation flag")

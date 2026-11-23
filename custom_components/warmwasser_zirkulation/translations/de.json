@@ -16,7 +16,7 @@
           "flow_sensor": "Temperaturfühler am Vorlauf beziehungsweise an der Zirkulationsleitung auswählen. Angezeigt werden Sensoren mit der Geräteklasse Temperatur.",
           "buffer_sensor": "Optionaler Temperaturfühler im Warmwasserpuffer. Leer lassen, wenn keiner verwendet wird.",
           "pump_entity": "Den vorhandenen Schalter auswählen, der die Zirkulationspumpe steuert. Die Auswahl schaltet die Pumpe nicht.",
-          "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 3600. Standard: 120 Sekunden.",
+          "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 86400. Standard: 120 Sekunden.",
           "max_starts": "Tägliche Obergrenze für automatische Pumpenstarts, von 1 bis 100. Standard: 6."
         }
       },
@@ -46,7 +46,7 @@
       "invalid_temperature_sensor": "Bitte einen Sensor mit der Geräteklasse Temperatur auswählen.",
       "invalid_pump": "Bitte einen Schalter für die Zirkulationspumpe auswählen.",
       "same_sensor": "Bitte einen anderen Puffertemperaturfühler auswählen oder das Feld leer lassen.",
-      "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 3600 Sekunden eingeben.",
+      "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 86400 Sekunden eingeben.",
       "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben.",
       "unsupported_country": "Für dieses Land ist kein Feiertagskalender verfügbar.",
       "invalid_subdivision": "Bitte eine Region aus der Liste auswählen oder die Auswahl leeren."
@@ -68,7 +68,7 @@
           "flow_sensor": "Temperaturfühler am Vorlauf beziehungsweise an der Zirkulationsleitung auswählen. Angezeigt werden Sensoren mit der Geräteklasse Temperatur.",
           "buffer_sensor": "Optionaler Temperaturfühler im Warmwasserpuffer. Leer lassen, wenn keiner verwendet wird.",
           "pump_entity": "Den vorhandenen Schalter auswählen, der die Zirkulationspumpe steuert. Die Auswahl schaltet die Pumpe nicht.",
-          "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 3600. Standard: 120 Sekunden.",
+          "runtime_seconds": "Laufzeit je Start in Sekunden, von 1 bis 86400. Standard: 120 Sekunden.",
           "max_starts": "Tägliche Obergrenze für automatische Pumpenstarts, von 1 bis 100. Standard: 6."
         }
       },
@@ -98,7 +98,7 @@
       "invalid_temperature_sensor": "Bitte einen Sensor mit der Geräteklasse Temperatur auswählen.",
       "invalid_pump": "Bitte einen Schalter für die Zirkulationspumpe auswählen.",
       "same_sensor": "Bitte einen anderen Puffertemperaturfühler auswählen oder das Feld leer lassen.",
-      "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 3600 Sekunden eingeben.",
+      "invalid_runtime": "Bitte eine ganze Zahl von 1 bis 86400 Sekunden eingeben.",
       "invalid_max_starts": "Bitte eine ganze Zahl von 1 bis 100 Starts pro Tag eingeben.",
       "unsupported_country": "Für dieses Land ist kein Feiertagskalender verfügbar.",
       "invalid_subdivision": "Bitte eine Region aus der Liste auswählen oder die Auswahl leeren."

@@ -204,5 +204,7 @@ class UsageHistory:
                         'start':plan.at.strftime('%H:%M:%S'),'end':plan.demand_at.strftime('%H:%M:%S'),
                         'offset':start/1800*100,'width':(end-start)/1800*100})
         data['planning']={'mode':settings['mode'],'vacation_active':settings['vacation_active'],
-                          'horizon_days':7,'next_start':plans[0].at.isoformat() if plans else None}
+                          'horizon_days':7,'next_start':plans[0].at.isoformat() if plans else None,
+                          'starts':[{'at':plan.at.isoformat(),'demand_at':plan.demand_at.isoformat(),
+                                     'observed_days':plan.observed_days,'ratio':plan.ratio} for plan in plans]}
         return data

@@ -25,7 +25,7 @@ def test_native_schema_has_filtered_entities_and_number_inputs():
         assert isinstance(fields[key], EntitySelector)
         assert fields[key].config['filter'] == [{'domain': ['sensor'], 'device_class': ['temperature']}]
     assert fields['pump_entity'].config['filter'] == [{'domain': ['switch']}]
-    for key, maximum in (('runtime_seconds', 3600), ('max_starts', 100)):
+    for key, maximum in (('runtime_seconds', 86400), ('max_starts', 100)):
         assert isinstance(fields[key], NumberSelector)
         assert fields[key].config['max'] == maximum
     validated = configuration_schema()({'flow_sensor': 'sensor.test_supply', 'pump_entity': 'switch.test_pump'})
@@ -137,3 +137,47 @@ class TestNativeConfigFlow(IsolatedAsyncioTestCase):
         assert result['data']['country'] == 'DE'
         assert result['data']['subdivision'] == 'BY'
         assert self.service_calls == []
+
+
+    async def test_native_options_show_panel_limits_and_update_the_same_durable_values(self):
+        from custom_components.warmwasser_zirkulation.app.core.const import DOMAIN
+        entry=SimpleNamespace(entry_id='limits-roundtrip',data={'flow_sensor':'sensor.test_supply',
+            'pump_entity':'switch.test_pump','runtime_seconds':120,'max_starts':6},options={})
+        self.hass.config_entries=SimpleNamespace(async_get_known_entry=lambda entry_id:entry)
+        coordinator=CirculationCoordinator.from_home_assistant(self.hass,entry)
+        await coordinator.async_start()
+        await coordinator.async_update_limits(5400,8)
+        self.hass.data[DOMAIN]={entry.entry_id:coordinator}
+        flow=ConfigFlow.async_get_options_flow(entry);flow.hass=self.hass;flow.handler=entry.entry_id
+        result=await flow.async_step_init()
+        marker=next(key for key in result['data_schema'].schema if str(key)=='runtime_seconds')
+        assert marker.description['suggested_value']==5400
+        await flow.async_step_init({'flow_sensor':'sensor.test_supply','pump_entity':'switch.test_pump',
+            'runtime_seconds':7200,'max_starts':10})
+        result=await flow.async_step_calendar({})
+        assert result['type']=='create_entry' and coordinator.runtime_seconds==7200
+        assert coordinator.max_starts==10
+        restored=CirculationCoordinator.from_home_assistant(self.hass,entry)
+        await restored.async_start()
+        assert restored.runtime_seconds==7200 and restored.max_starts==10
+        assert self.service_calls==[]
+
+
+    async def test_unloaded_entry_options_read_and_replace_saved_panel_limits(self):
+        entry=SimpleNamespace(entry_id='unloaded-limits',data={'flow_sensor':'sensor.test_supply',
+            'pump_entity':'switch.test_pump','runtime_seconds':120,'max_starts':6},options={})
+        self.hass.config_entries=SimpleNamespace(async_get_known_entry=lambda entry_id:entry)
+        previous=CirculationCoordinator.from_home_assistant(self.hass,entry)
+        await previous.async_start()
+        await previous.async_update_limits(5400,8)
+        flow=ConfigFlow.async_get_options_flow(entry);flow.hass=self.hass;flow.handler=entry.entry_id
+        result=await flow.async_step_init()
+        marker=next(key for key in result['data_schema'].schema if str(key)=='runtime_seconds')
+        assert marker.description['suggested_value']==5400
+        await flow.async_step_init({'flow_sensor':'sensor.test_supply','pump_entity':'switch.test_pump',
+            'runtime_seconds':7200,'max_starts':10})
+        await flow.async_step_calendar({})
+        restored=CirculationCoordinator.from_home_assistant(self.hass,entry)
+        await restored.async_start()
+        assert restored.runtime_seconds==7200 and restored.max_starts==10
+        assert self.service_calls==[]

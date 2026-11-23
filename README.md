@@ -48,10 +48,10 @@ Kurzablauf:
    Die letzten 28 abgeschlossenen Tage werden bei unzureichender Lernbasis automatisch
    aus dem HA-Recorder gelesen, soweit dort Messungen vorhanden sind.
 4. Messintervall, Lücken, Pumpenartefakte und Stichprobengröße im Dashboard prüfen.
-5. Im Dashboard **Konfiguration** öffnen: Freigabezeiten für Montag bis Samstag
+5. Im Dashboard **Einstellungen → Freigabezeiten** öffnen: Freigabezeiten für Montag bis Samstag
    und die gemeinsame Gruppe **Sonn-/Feiertage** als Listen mit mehreren Abschnitten anlegen (z. B. 06:00–08:00
-   und 18:00–21:00). Leere Tage sind gesperrt. Erst danach **Steuerung aktiv**
-   wählen und **Konfiguration speichern**. Für Urlaub gibt es ein separates,
+   und 18:00–21:00). Leere Tage sind gesperrt. Erst danach **Automatische Steuerung**
+   wählen und **Änderungen speichern**. Für Urlaub gibt es ein separates,
    manuell aktivierbares Tagesprofil; ohne Zeitfenster sperrt es alle Starts.
 
 Die produktive Installation/Aktivierung ist ausdrücklich nicht Teil dieses Projekts.
@@ -93,3 +93,8 @@ Bei fehlenden historischen Pumpenaufzeichnungen wird auf ausdrückliche Vorgabe
 „Pumpe aus“ angenommen; die UI kennzeichnet dies. Aufgezeichnete `unknown`- oder
 `unavailable`-Zustände werden ausgeschlossen. Fehlende Temperaturdaten werden
 nicht ergänzt oder als verbrauchsfreie Zeit gezählt.
+
+Die Titelleiste bleibt beim Scrollen sichtbar. Unter **Einstellungen → Betrieb & Urlaub**
+sind Pumpenlaufzeit (frei in Minuten bis 1.440 Minuten) und Tageslimit einstellbar.
+Dezimalwerte sind möglich; laufende Pumpenläufe behalten ihre bestätigte Endzeit.
+Die dunkle Ansicht verwendet neutrale Anthrazit-/Grautöne.

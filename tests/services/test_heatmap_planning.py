@@ -84,3 +84,11 @@ def test_marker_tracks_real_time_when_spring_dst_skips_an_hour():
     row=data['rows'][-1]['cells']
     assert row[3]['planned_runs'] and row[6]['planned_runs']
     assert not row[4]['planned_runs'] and not row[5]['planned_runs']
+
+
+def test_overview_receives_the_same_concrete_starts_as_the_control_planner():
+    source=history();config=settings()
+    data=source.planning_snapshot(NOW,config,120)
+    prediction=source.predict(NOW,config,120)
+    assert data['planning']['starts'][0]=={'at':prediction.at.isoformat(),
+        'demand_at':prediction.demand_at.isoformat(),'observed_days':prediction.observed_days,'ratio':prediction.ratio}

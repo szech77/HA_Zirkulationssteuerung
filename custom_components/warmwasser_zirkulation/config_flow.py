@@ -61,7 +61,7 @@ class CalendarSteps:
         if user_input is not None:
             country = user_input.get('country') or None
             if country is None:
-                return self._finish_configuration({**self._pending_configuration,
+                return await self._finish_configuration({**self._pending_configuration,
                     'country': None, 'subdivision': None})
             if not isinstance(country, str):
                 errors['country'] = 'unsupported_country'
@@ -74,7 +74,7 @@ class CalendarSteps:
                 else:
                     self._pending_configuration['country'] = country
                     if not self._regions:
-                        return self._finish_configuration({**self._pending_configuration, 'subdivision': None})
+                        return await self._finish_configuration({**self._pending_configuration, 'subdivision': None})
                     return await self.async_step_region()
         return self.async_show_form(step_id='calendar', errors=errors, last_step=False,
             data_schema=self.add_suggested_values_to_schema(
@@ -88,7 +88,7 @@ class CalendarSteps:
             if subdivision is not None and subdivision not in self._regions:
                 errors['subdivision'] = 'invalid_subdivision'
             else:
-                return self._finish_configuration({**self._pending_configuration, 'subdivision': subdivision})
+                return await self._finish_configuration({**self._pending_configuration, 'subdivision': subdivision})
         country = self._pending_configuration['country']
         options = [{'value': region, 'label': GERMAN_REGIONS.get(region, region) if country == 'DE' else region}
                    for region in self._regions]
@@ -121,7 +121,7 @@ class ConfigFlow(CalendarSteps, config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-    def _finish_configuration(self, data):
+    async def _finish_configuration(self, data):
         return self.async_create_entry(title="Warmwasser-Zirkulation", data=data)
 
 
@@ -131,6 +131,14 @@ class WarmwaterOptionsFlow(CalendarSteps, config_entries.OptionsFlowWithReload):
     async def async_step_init(self, user_input=None):
         errors = {}
         values = entry_configuration(self.config_entry)
+        coordinator = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        if coordinator is not None:
+            values.update(runtime_seconds=coordinator.runtime_seconds, max_starts=coordinator.max_starts)
+        else:
+            from .app.db.runtime import HomeAssistantStateStore
+            persisted = await HomeAssistantStateStore(self.hass, self.config_entry.entry_id).load()
+            values.update({key: persisted[key] for key in (CONF_RUNTIME_SECONDS, CONF_MAX_STARTS)
+                           if persisted.get(key) is not None})
         if user_input is not None:
             data, errors = _validate(self.hass, user_input)
             if not errors:
@@ -144,5 +152,13 @@ class WarmwaterOptionsFlow(CalendarSteps, config_entries.OptionsFlowWithReload):
         )
 
 
-    def _finish_configuration(self, data):
+    async def _finish_configuration(self, data):
+        coordinator = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        if coordinator is None:
+            # An unloaded entry has no polling/control task. Restore its state for
+            # the same serialized settings save, without sending pump commands.
+            from .app.services.coordinator import CirculationCoordinator
+            coordinator = CirculationCoordinator.from_home_assistant(self.hass, self.config_entry)
+            await coordinator.async_start()
+        await coordinator.async_update_limits(data[CONF_RUNTIME_SECONDS], data[CONF_MAX_STARTS])
         return self.async_create_entry(data={**self.config_entry.options, **data})
